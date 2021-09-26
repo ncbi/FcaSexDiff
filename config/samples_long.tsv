@@ -1,0 +1,22 @@
+Analysis	Technology	Tissue(s)	Age (d)	Sex	Num. Samples	Version	Loom	H5AD	SCope	ASAP	cellxgene	LoomLink
+10x VSN All (Stringent)	10x Genomics	All	5	Mix (50:50)	61	Stringent	Loom	H5AD	SCope	ASAP	cellxgene	https://cloud.flycellatlas.org/index.php/s/9TqWZ9e8se9RLdB
+10x VSN Antenna (Stringent)	10x Genomics	Antenna	5	Mix (50:50)	5	Stringent	Loom	H5AD	SCope	ASAP	cellxgene	https://cloud.flycellatlas.org/index.php/s/PcHBoL23CmxGNsb
+10x VSN Body (Stringent)	10x Genomics	Body	5	Mix (50:50)	13	Stringent	Loom	H5AD	SCope	ASAP	cellxgene	https://cloud.flycellatlas.org/index.php/s/yNGaMWYFaNkFSKY
+10x VSN Body Wall (Stringent)	10x Genomics	Body Wall	5	Mix (50:50)	2	Stringent	Loom	H5AD	SCope	ASAP	cellxgene	https://cloud.flycellatlas.org/index.php/s/egxzns8NgtCjonB
+10x VSN Fat Body (Stringent)	10x Genomics	Fat Body	3	Mix (50:50)	2	Stringent	Loom	H5AD	SCope	ASAP	cellxgene	https://cloud.flycellatlas.org/index.php/s/HApyeMyTeSkLTJS
+10x VSN Gut (Stringent)	10x Genomics	Gut	5	Mix (50:50)	2	Stringent	Loom	H5AD	SCope	ASAP	cellxgene	https://cloud.flycellatlas.org/index.php/s/4AFW3Q8N6eG4qXG
+10x VSN Haltere (Stringent)	10x Genomics	Haltere	5	Mix (50:50)	2	Stringent	Loom	H5AD	SCope	ASAP	cellxgene	https://cloud.flycellatlas.org/index.php/s/pNe5feGDRXRK9K8
+10x VSN Head (Stringent)	10x Genomics	Head	5	Mix (50:50)	13	Stringent	Loom	H5AD	SCope	ASAP	cellxgene	https://cloud.flycellatlas.org/index.php/s/jtH5fGwLqtiSRSD
+10x VSN Heart (Stringent)	10x Genomics	Heart	5	Mix (50:50)	2	Stringent	Loom	H5AD	SCope	ASAP	cellxgene	https://cloud.flycellatlas.org/index.php/s/XWBLMJRTrw26qjg
+10x VSN Leg (Stringent)	10x Genomics	Leg	5	Mix (50:50)	2	Stringent	Loom	H5AD	SCope	ASAP	cellxgene	https://cloud.flycellatlas.org/index.php/s/ZX56j2CcMXnHXYc
+10x VSN Male Reproductive Glands (Stringent)	10x Genomics	Male Reproductive Glands	2	Male	1	Stringent	Loom	H5AD	SCope	ASAP	cellxgene	https://cloud.flycellatlas.org/index.php/s/rSgw2GGSqRkLHgM
+10x VSN Malpighian Tubule (Stringent)	10x Genomics	Malpighian Tubule	5	Mix (50:50)	2	Stringent	Loom	H5AD	SCope	ASAP	cellxgene	https://cloud.flycellatlas.org/index.php/s/3HTntQjge85dNNC
+10x VSN Oenocyte (Stringent)	10x Genomics	Oenocyte	5	Mix (50:50)	2	Stringent	Loom	H5AD	SCope	ASAP	cellxgene	https://cloud.flycellatlas.org/index.php/s/CHBRf3Sjo4ZggQA
+10x VSN Ovary (Stringent)	10x Genomics	Ovary	5	Female	2	Stringent	Loom	H5AD	SCope	ASAP	cellxgene	https://cloud.flycellatlas.org/index.php/s/yazZmHtfwMXr3qr
+10x VSN Proboscis and Maxillary Palps (Stringent)	10x Genomics	Proboscis and Maxillary Palps	5	Mix (50:50)	4	Stringent	Loom	H5AD	SCope	ASAP	cellxgene	https://cloud.flycellatlas.org/index.php/s/6dooYZ72RC6Ktx7
+10x VSN Testis (Stringent)	10x Genomics	Testis	1	Male	3	Stringent	Loom	H5AD	SCope	ASAP	cellxgene	https://cloud.flycellatlas.org/index.php/s/gNbB8j2kxb586ss
+10x VSN Trachea (Stringent)	10x Genomics	Trachea	5	Mix (50:50)	2	Stringent	Loom	H5AD	SCope	ASAP	cellxgene	https://cloud.flycellatlas.org/index.php/s/TzkJDf3jqaJPHGS
+10x VSN Wing (Stringent)	10x Genomics	Wing	5	Mix (50:50)	2	Stringent	Loom	H5AD	SCope	ASAP	cellxgene	https://cloud.flycellatlas.org/index.php/s/9xNnXyYPY6nyi7d
+10x VSN Male Reproductive Glands (Relaxed)	10x Genomics	Male Reproductive Glands	2	Male	1	Relaxed	Loom	H5AD	SCope	ASAP	n.a.	https://cloud.flycellatlas.org/index.php/s/2xTtSQmHZf4xpGb
+10x VSN Ovary (Relaxed)	10x Genomics	Ovary	5	Female	2	Relaxed	Loom	H5AD	SCope	ASAP	n.a.	https://cloud.flycellatlas.org/index.php/s/HWZisNk8QCdDqXb
+10x VSN Testis (Relaxed)	10x Genomics	Testis	1	Male	3	Relaxed	Loom	H5AD	SCope	ASAP	n.a.	https://cloud.flycellatlas.org/index.php/s/XAq3kCkfwEQotw7
