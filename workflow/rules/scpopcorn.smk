@@ -135,7 +135,10 @@ rule plot_sankey:
 
 
 append_final_output(expand(
-  "results/sankey_scpopcorn/sankey_scpopcorn_{tissue}_{fcaver}.html",
+  #"results/sankey_scpopcorn/sankey_scpopcorn_{tissue}_{fcaver}.html",
+  #"resources/scpopcorn/tmp_{tissue}_{fcaver}/sc_within_between.pkl",
+  #"resources/scpopcorn/tmp_{tissue}_{fcaver}/sc_nkcut.pkl",
+  "resources/int_h5ad/int_{tissue}_{fcaver}.h5ad",
   zip,
   tissue=samples["tissue"],
   fcaver=samples["fcaver"],

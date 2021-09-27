@@ -10,10 +10,10 @@ samples = (
     .sort_index()
 )
 
-sex_specific = ['testis', 'ovary', 'male_reproductive_glands', 'all']
+sex_specific = ['testis', 'ovary', 'male_reproductive_glands', 'gonad', 'all']
 
 samples = samples.query("tissue not in @sex_specific")
-samples = samples.query("tissue == 'leg'")
+#samples = samples.query("tissue == 'leg'")
 
 #validate(samples, schema="../schemas/samples.schema.yaml")
 
