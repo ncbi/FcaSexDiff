@@ -139,6 +139,15 @@ def get_sexbiased_expression_in_cluster(adata):
         num_nz[num_nz == 0] = 1
         return np.ravel(np.true_divide(mat.sum(axis=0),num_nz))
 
+    def percent_non_zero(mat):
+        if mat.shape[0] == 0:
+            # empty matrix, return a vector of zeros
+            return np.zeros(mat.shape[1])
+        # force number of non-zeros in row be a positive
+        # number to avoid divide by error
+        num_nz = (mat!=0).sum(axis=0)
+        return np.ravel(num_nz/mat.shape[0])
+
     print(adata.obs)
     print(female.todense())
 
@@ -158,8 +167,8 @@ def get_sexbiased_expression_in_cluster(adata):
         'pval'      : np.zeros(ngene) + 1.0,
         'padj'      : np.zeros(ngene) + 1.0,
         'score'     : np.zeros(ngene),
-        'pct_male'  : np.zeros(ngene),
-        'pct_female': np.zeros(ngene),
+        'pct_female': percent_non_zero(female),
+        'pct_male'  : percent_non_zero(male),
     }, index = adata.var.index)
 
     error = False

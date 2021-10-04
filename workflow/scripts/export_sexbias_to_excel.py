@@ -7,9 +7,13 @@ from utils import DF2Excel, pvalstr
 
 bias_file = snakemake.input[0]
 outfile = snakemake.output[0]
+tissue = snakemake.wildcards.tissue
+resol = snakemake.wildcards.resol
 
 print(bias_file)
 print(outfile)
+print(tissue)
+print(resol)
 
 readme_text = """
 Cluster level sexbias information both by counts and by gene expression
@@ -21,16 +25,20 @@ In both sheets the details about rows and columns are as given below.
 Column information:
 cluster|Cluster name (cell type if annotation is used)
 major_annotation|Major cell type in the cluster, useful if clusters are not by annotation
-cluster_type|Whether cluster contains cells of a single sex or both
-cell_count_male|Number of male cells in the cluster
 cell_count_female|Number of female cells in the cluster
-log2_count_bias|log2((NM + eps)/(FM + eps)) where NM (NF) is the normalized (by total cells in the tissue sample) male (female) cell count for the cluster
-count_bias_sig|Significance of the count bias based on Fisher's test
+cell_count_male|Number of male cells in the cluster
+sample_cell_count_female|Number of female cells in the tissue
+sample_cell_count_male|Number of male cells in the tissue
+log2_count_bias|log2((NF + eps)/(NM + eps)) where NM (NF) is the normalized (by total cells in the tissue sample) male (female) cell count for the cluster
+count_bias_padj|BH corrected pvalue from Binomial test for cluster-count-bias
+count_bias_type|cluster is male- or female-biased based on count_bias_padj<0.05 and log2_count_bias >1 or <-1 (2-fold change)
 stats|Statistics for a gene within cluster
 |avg_all|Average expression of gene in all cells in cluster
 |avg_male|Average expression of gene in all male cells in cluster
 |avg_female|Average expression of gene in all female cells in cluster
-|log2fc|Log2 of fold change of average expression in favor of male cells against female cells
+|pct_female|Percentage of female cells where gene is expressed
+|pct_male|Percentage of male cells where gene is expressed
+|log2fc|Log2 of fold change of average expression in favor of female cells against male cells
 |padj|BH corrected pvalue from Wilcoxon test for male cells vs female cells expression
 |bias|gene is male- or female-biased based on padj<0.05 and log2fc >1 or <-1 (2-fold change)
 
@@ -39,9 +47,10 @@ Row information:
 chr|Chromosome where gene is located
 symbol|Gene symbol
 FBgn|Flybase ID of gene
-male_cls|Number of clusters where gene is male-biased
+umi_tissue|Average UMI of all cells in tissue
+norm_tissue|Average normalized expression of all cells in tissue
 female_cls|Number of clusters where gene is female-biased
-biased_cls|Number of clusters where gene is either male- or female-biased
+male_cls|Number of clusters where gene is male-biased
 """
 
 readme = pd.read_csv(StringIO(readme_text), names=['short', 'long', 'more'],
@@ -50,13 +59,14 @@ readme = pd.read_csv(StringIO(readme_text), names=['short', 'long', 'more'],
 print(readme)
 
 adata = ad.read_h5ad(bias_file)
+print(adata)
 
-ordered_stats = 'avg_all avg_female avg_male log2fc padj'.split()
+ordered_stats = 'avg_all avg_female avg_male pct_female pct_male log2fc padj'.split()
 
 tmp = adata.X.todense()
 bias = tmp.astype(str)
-bias[tmp > 0] = "Male"
-bias[tmp < 0] = "Female"
+bias[tmp > 0] = "Female"
+bias[tmp < 0] = "Male"
 bias[tmp == 0] = ""
 bias = (
     pd.DataFrame(bias, index=adata.obs_names, columns=adata.var_names)
@@ -83,16 +93,27 @@ ordered_rows = [
 ]
 
 ordered_cols = [
-    'cluster', 'major_annotation', 'cluster_type',
+    'cluster', 'major_annotation',
     'cell_count_female', 'cell_count_male',
-    'log2_count_bias', 'count_bias_sig',
+    'sample_cell_count_female', 'sample_cell_count_male',
+    'log2_count_bias', 'count_bias_type', 'count_bias_padj',
     'female_gene', 'male_gene', 'stats',
 ]
 
 expr_bias.columns = pd.MultiIndex.from_frame(
     expr_bias.columns.to_frame(index=False)
     .merge(adata.var.reset_index(), how="left")
-    .assign(count_bias_sig = lambda df: df['padj_binom'].apply(pvalstr))
+    .assign(count_bias_padj = lambda df: df['padj_binom']) #.apply(pvalstr))
+    .assign(count_bias_type = lambda df: df.apply(
+        lambda x: "Female" if (((x['padj_binom'] < 0.05) &
+                                (x["log2_count_bias"] > 1)) |
+                               (x["cluster_type"] == "female_only")) else
+                  "Male"  if (((x['padj_binom'] < 0.05) &
+                                (x["log2_count_bias"] < -1)) |
+                               (x["cluster_type"] == "male_only")) else
+                  "Unbiased",
+        axis=1
+    ))
     [ordered_cols]
 )
 print(expr_bias)
