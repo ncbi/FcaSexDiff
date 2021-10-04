@@ -22,10 +22,10 @@ configfile: "config/config.yaml"
 
 
 include: "rules/common.smk"
-include: "rules/getloom.smk"
-include: "rules/loom_to_h5ad.smk"
-include: "rules/scpopcorn.smk"
-#include: "rules/sexbias.smk"
+#include: "rules/getloom.smk"
+#include: "rules/loom_to_h5ad.smk"
+#include: "rules/scpopcorn.smk"
+include: "rules/sexbias.smk"
 
 
 ##### target rules #####

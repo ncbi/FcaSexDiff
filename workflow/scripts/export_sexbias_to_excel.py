@@ -1,18 +1,14 @@
 #!/usr/bin/env python3
 
 import pandas as pd
-import sys, os
-sys.path.append(os.path.abspath("../utils"))
-from utils import *
-from df2excel import *
+import anndata as ad
 from io import StringIO
+from utils import DF2Excel, pvalstr
 
 bias_file = snakemake.input[0]
-gene_meta_file = snakemake.input[1]
 outfile = snakemake.output[0]
 
 print(bias_file)
-print(gene_meta_file)
 print(outfile)
 
 readme_text = """
@@ -53,92 +49,84 @@ readme = pd.read_csv(StringIO(readme_text), names=['short', 'long', 'more'],
 
 print(readme)
 
+adata = ad.read_h5ad(bias_file)
 
-# get cluster information
-count_bias = (
-    pd.read_hdf(bias_file, key='count_bias')
-    [['cluster', 'major_annotation', 'cluster_type',
-      'cell_count_female', 'cell_count_male',
-      #'sample_cell_count_female', 'sample_cell_count_male',
-      'log2_male_to_female', 'padj_binom']]
-    .rename(columns={
-        'log2_male_to_female': 'log2_count_bias',
-        'padj_binom': 'count_bias_sig'
-    })
-    .assign(count_bias_sig = lambda df: df['count_bias_sig'].apply(pvalstr))
+ordered_stats = 'avg_all avg_female avg_male log2fc padj'.split()
+
+tmp = adata.X.todense()
+bias = tmp.astype(str)
+bias[tmp > 0] = "Male"
+bias[tmp < 0] = "Female"
+bias[tmp == 0] = ""
+bias = (
+    pd.DataFrame(bias, index=adata.obs_names, columns=adata.var_names)
+
 )
-print(count_bias)
 
-use_stats = 'avg_all avg_male avg_female log2fc padj bias'.split()
+frames = [
+    pd.DataFrame(adata.layers[stat], index=adata.obs_names, columns=adata.var_names)
+    for stat in ordered_stats
+]
 
-expr_bias = pd.read_hdf(bias_file, key='expr_bias')
-expr_bias = expr_bias.loc[:, expr_bias.columns.get_level_values('stats').isin(use_stats)]
-print(expr_bias)
-
-
-padj = expr_bias.loc[:, expr_bias.columns.get_level_values('stats') == 'padj']
-log2fc = expr_bias.loc[:, expr_bias.columns.get_level_values('stats') == 'log2fc']
-
-padj.columns = padj.columns.droplevel('stats')
-log2fc.columns = log2fc.columns.droplevel('stats')
-
-male_bias = (padj < 0.05) & (log2fc > 1)
-female_bias = (padj < 0.05) & (log2fc < -1)
-
-bias = pd.DataFrame(index=male_bias.index, columns=male_bias.columns)
-bias[male_bias == True] = 'Male'
-bias[female_bias == True] = 'Female'
-bias = pd.concat([bias], keys=['bias'], names=['stats'], axis=1)
-bias.columns = bias.columns.reorder_levels(list(range(1, bias.columns.nlevels))+[0])
-
-print(bias)
-
-expr_bias = (
-    pd.concat([expr_bias, bias], axis=1)
-    .stack('stats')
-    [count_bias['cluster']]
-)
-print(expr_bias)
-
-expr_bias.columns = pd.MultiIndex.from_frame(count_bias)
-print(expr_bias)
-
-expr_bias = (
-    expr_bias.unstack('stats')
-    .reindex(use_stats, axis=1, level='stats')
+expr_bias = pd.concat(
+    [bias] + frames,
+    keys = ['bias'] + ordered_stats,
+    names = ['stats', 'cluster'],
+    axis = 1
 )
 print(expr_bias)
 
 
-# compute number of biased clusters for each gene
-male_bias_count = male_bias.sum(1)
-female_bias_count = female_bias.sum(1)
+ordered_rows = [
+    "chr", "symbol", "FBgn", "umi_tissue", "norm_tissue", "female_cls",
+    "male_cls",
+]
 
-# augment biased cluster number for each gene on the rows
+ordered_cols = [
+    'cluster', 'major_annotation', 'cluster_type',
+    'cell_count_female', 'cell_count_male',
+    'log2_count_bias', 'count_bias_sig',
+    'female_gene', 'male_gene', 'stats',
+]
+
+expr_bias.columns = pd.MultiIndex.from_frame(
+    expr_bias.columns.to_frame(index=False)
+    .merge(adata.var.reset_index(), how="left")
+    .assign(count_bias_sig = lambda df: df['padj_binom'].apply(pvalstr))
+    [ordered_cols]
+)
+print(expr_bias)
+
 expr_bias.index = pd.MultiIndex.from_frame(
-    expr_bias.index.to_frame()
-    .merge(pd.read_table(gene_meta_file, index_col='symbol'),
-           how='left', left_index=True, right_index=True)
-    .assign(male_cls = male_bias_count)
-    .assign(female_cls = female_bias_count)
-    .assign(biased_cls = male_bias_count + female_bias_count)
+    expr_bias.index.to_frame(index=False)
+    .merge(adata.obs.reset_index(), how="left")
+    [ordered_rows]
 )
+print(expr_bias)
+
+detailed = (
+    expr_bias.sort_index(0)
+    .sort_index(1)
+    .reindex(ordered_stats + ['bias'], axis=1, level='stats')
+)
+print(detailed)
 
 # trim non-interesting genes
-expr_bias = expr_bias.loc[expr_bias.index.get_level_values('biased_cls')>0,:]
+if (detailed.shape[0] > 100):
+    detailed = detailed.loc[
+        detailed.index.get_level_values('male_cls') +
+        detailed.index.get_level_values('female_cls') > 0,
+        :
+    ]
+print(detailed)
 
-expr_bias.index = expr_bias.index.reorder_levels('chr symbol FBgn avg_base male_cls female_cls biased_cls'.split())
-print(expr_bias)
-
-expr_bias = expr_bias.sort_index()
-print(expr_bias)
-
-summary = expr_bias.loc[:, expr_bias.columns.get_level_values('stats') == 'bias']
+summary = detailed.loc[:, detailed.columns.get_level_values('stats') == 'bias']
 print(summary)
 
 
 d2x = DF2Excel(outfile)
 d2x.write(readme, 'ReadMe', write_header=False)
 d2x.write(summary, 'Summary')
-d2x.write(expr_bias, 'Detailed')
+d2x.write(detailed, 'Detailed')
 d2x.close()
+

@@ -9,13 +9,15 @@ samples = (
     .set_index(["tissue", "fcaver"], drop=False)
     .sort_index()
 )
+#validate(samples, schema="../schemas/samples.schema.yaml")
 
 sex_specific = ['testis', 'ovary', 'male_reproductive_glands', 'gonad', 'all']
 
 samples = samples.query("tissue not in @sex_specific")
-#samples = samples.query("tissue == 'leg'")
 
-#validate(samples, schema="../schemas/samples.schema.yaml")
+#samples = samples.query("tissue in ['leg', 'malpighian_tubule']")
+samples = samples.query("tissue in ['test']")
+
 
 final_output = []
 

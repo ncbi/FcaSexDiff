@@ -104,6 +104,7 @@ rule NKcut_rounding:
     MSingle.OutputResult(output[0])
     pickle.dump(MSingle, open(output[1], 'wb'))
 
+
 rule augment_h5ad_obs:
   input:
     "resources/exp_h5ad/exp_{tissue}_{fcaver}.h5ad",
@@ -129,16 +130,28 @@ rule plot_sankey:
   input:
     "resources/int_h5ad/int_{tissue}_{fcaver}.h5ad",
   output:
-    "results/sankey_scpopcorn/sankey_scpopcorn_{tissue}_{fcaver}.html",
+    "results/sankey_scpopcorn/{tissue}_{fcaver}_sankey_scpopcorn.html",
   script:
     "../scripts/plot_sankey_integration.py"
 
 
+rule get_stats:
+  input:
+    "resources/scpopcorn/scpopcorn_{tissue}_{fcaver}.pkl",
+  output:
+    "resources/scpopcorn/scpopcoen_stats_{tissue}_{fcaver}.txt",
+  run:
+    MSingle = pickle.load(open(input[0], 'rb'))
+    MSingle.StatResult()
+
+print(samples)
+
 append_final_output(expand(
-  #"results/sankey_scpopcorn/sankey_scpopcorn_{tissue}_{fcaver}.html",
+  "results/sankey_scpopcorn/{tissue}_{fcaver}_sankey_scpopcorn.html",
+  #"resources/scpopcorn/scpopcoen_stats_{tissue}_{fcaver}.txt",
   #"resources/scpopcorn/tmp_{tissue}_{fcaver}/sc_within_between.pkl",
   #"resources/scpopcorn/tmp_{tissue}_{fcaver}/sc_nkcut.pkl",
-  "resources/int_h5ad/int_{tissue}_{fcaver}.h5ad",
+  #"resources/int_h5ad/int_{tissue}_{fcaver}.h5ad",
   zip,
   tissue=samples["tissue"],
   fcaver=samples["fcaver"],

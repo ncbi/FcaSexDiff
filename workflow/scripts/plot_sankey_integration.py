@@ -93,48 +93,67 @@ def prepare_sankey_data(df, label_key, cluster_key):
         df[['CellID', 'sex', label_key, cluster_key]]
         .rename(columns={label_key:'label', cluster_key:'cluster'})
         .assign(cluster = lambda df: df["cluster"].apply(
-            lambda x: f'C{x}'
+            lambda x: f'C{int(x)}'
         ))
         .groupby(["cluster", "label"])
         .agg({'CellID':'count', 'sex':'first'})
         .reset_index()
-        .assign(ncell = lambda df: df.groupby("cluster").CellID.transform("sum"))
+        .assign(ncell_cluster = lambda df: df.groupby("cluster").CellID.transform("sum"))
+        .assign(ncell_annot = lambda df: df.groupby("label").CellID.transform("sum"))
+        .assign(percent_annot = lambda df: df["CellID"]*100/df["ncell_annot"])
     )
 
-    females = (
-            edges.query('sex == "F"')
-            [["label"]]
-            .drop_duplicates()
-            .assign(i=0, color = "red")
+    print(edges)
+
+    return edges
+
+def export_plot_data(edges, writer, sheet_name="AllEdges"):
+
+    res = (
+        edges[['cluster', 'ncell_cluster', 'label', 'ncell_annot', 'CellID', 'percent_annot']]
+        .sort_values(by=['ncell_cluster', 'percent_annot', 'label'],
+                     ascending=[False, False, True])
+        .rename(columns={'cluster': 'scPopCornCluster',
+                         'ncell_cluster': 'nCellInCluster',
+                         'label': 'Annotation',
+                         'CellID': 'nCellWithAnnotationInCluster',
+                         'ncell_annot': 'nCellWithAnnotation',
+                         'percent_annot': 'percentCellsWithAnnotationInCluster'})
     )
+    print(res)
 
-    males = (
-            edges.query('sex == "M"')
-            [["label"]]
-            .drop_duplicates()
-            .assign(i=2, color = "blue")
-    )
-
-    clusters = (
-            edges[["cluster"]]
-            .rename(columns={"cluster":'label'})
-            .drop_duplicates()
-            .assign(i=1, color = lambda df: df.label.apply(
-                lambda x: f'rgba{colors.to_rgba(ColorsG[int(x[1:])][1])}'
-             ))
-    )
-
-    nodes = pd.concat([females, clusters, males], ignore_index = True, axis = 0)
-
-    return nodes, edges
+    res.to_excel(writer, sheet_name=sheet_name, index=False)
 
 
 
 
-def plot_sankey(nodes, edges, title):
+def plot_sankey(edges, title):
+
+  females = (
+          edges.query('sex == "F"')
+          [["label"]]
+          .drop_duplicates()
+          .assign(i=0, color = "red")
+  )
+
+  males = (
+          edges.query('sex == "M"')
+          [["label"]]
+          .drop_duplicates()
+          .assign(i=2, color = "blue")
+  )
+
+  clusters = (
+          edges[["cluster"]]
+          .rename(columns={"cluster":'label'})
+          .drop_duplicates()
+          .assign(i=1, color = lambda df: df.label.apply(
+              lambda x: f'rgba{colors.to_rgba(ColorsG[int(x[1:])][1])}'
+           ))
+  )
 
   nodes = (
-      nodes
+      pd.concat([females, clusters, males], ignore_index = True, axis = 0)
       .assign(j = lambda df: df.groupby('i').label.transform(lambda s:range(s.shape[0])))
       .assign(x = lambda df: 0.001 + df.i/4)
       .assign(y = lambda df: (df.j + 1)/(1 + df.groupby('i').count().values.max()))
@@ -176,6 +195,18 @@ def plot_sankey(nodes, edges, title):
   fig.write_html(str(outpath.with_suffix('.html')))
 
 
-nodes, edges = prepare_sankey_data(data, 'annotation', 'scpopcorn_cluster')
+edges = prepare_sankey_data(data, 'annotation', 'scpopcorn_cluster')
 
-plot_sankey(nodes, edges, f"FCA {snakemake.wildcards.tissue} male/female integration using scPopCorn")
+writer = pd.ExcelWriter(str(outpath.with_suffix('.xlsx')), engine='xlsxwriter')
+
+export_plot_data(edges, writer, 'AllEdges')
+
+edges = edges.query("percent_annot > 5.0")
+
+export_plot_data(edges, writer, "ThickEdges")
+
+writer.save()
+
+plot_sankey(edges, f"FCA {snakemake.wildcards.tissue} male/female integration using scPopCorn")
+
+
