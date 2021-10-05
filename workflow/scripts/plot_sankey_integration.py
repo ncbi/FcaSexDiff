@@ -148,7 +148,7 @@ def plot_sankey(edges, title):
           .rename(columns={"cluster":'label'})
           .drop_duplicates()
           .assign(i=1, color = lambda df: df.label.apply(
-              lambda x: f'rgba{colors.to_rgba(ColorsG[int(x[1:])][1])}'
+              lambda x: f'rgba{colors.to_rgba(ColorsG[int(x[1:])+1][1])}'
            ))
   )
 

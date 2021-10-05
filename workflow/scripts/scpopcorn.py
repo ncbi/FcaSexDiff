@@ -100,21 +100,21 @@ class PageRankVec:
                 #print(tmp_eps)
             else:
                 break
-        
+
         return pvec#, rvec
-    
+
     def Conductance(self, setvec):
         setvec = setvec[np.newaxis]
         InnerEdge = setvec.dot(self.AdjMat).dot(setvec.T)
         VolS = np.sum(np.multiply(self.Degree, setvec)) 
         Vol = np.sum(self.Degree)
-        
+
         if Vol-VolS < 1e-8:
             return 1.
         else:
             Cond = (VolS - InnerEdge) / np.min([VolS, Vol-VolS])
             return Cond
-        
+
     def Density(self, setvec):
         setvec = setvec[np.newaxis]
         InnerEdge = setvec.dot(self.AdjMat).dot(setvec.T)
@@ -123,7 +123,7 @@ class PageRankVec:
         else:
             Density = InnerEdge / np.sum(setvec)#(np.sum(setvec)*(np.sum(setvec)-1.))
         return Density
-    
+
     def Density_MST(self, setvec):
         if np.sum(setvec) == 1.:
             return 0.
@@ -138,8 +138,8 @@ class PageRankVec:
             SimDen = SimSum / (np.sum(setvec) - 1.)
             #print(DisSum, len(setvec), SimSum, SimDen)
             return SimDen
-        
-    
+
+
     def Sweep(self, pvec, Num):
         Ind = np.argsort(-pvec)[0:Num]
         CumInd = list()
@@ -1153,9 +1153,10 @@ class MergeSingleCell:
                 FIndex.extend([i])
         return np.array(FIndex)
     
-    def StatResult(self):
+    def StatResult(self, outfile=None):
         CResult = self.ClusterResult
         UniqC = np.unique(CResult)
+        AvgSim = np.zeros(len(UniqC))
         for i in range(len(UniqC)):
             Indt = np.where(CResult==UniqC[i])[0]
             Vec1 = np.zeros(len(CResult))
@@ -1175,8 +1176,16 @@ class MergeSingleCell:
                 continue
             #SimSum
             SimSum = Vec1.T.dot(self.BMat_Between_SuperCell).dot(Vec1)
-            AvgSim = SimSum / SqrtNum
-            print("Similairty between cells across datasets of Cluster %d is %f" %(UniqC[i], AvgSim/2.))
+            AvgSim[i] = (SimSum / SqrtNum)/2.
+            print("Similairty between cells across datasets of Cluster %d is %f" %(UniqC[i], AvgSim[i]))
+        if outfile:
+            (
+                pd.DataFrame(dict(
+                    cluster = UniqC,
+                    avg_sim = AvgSim
+                ))
+                .to_csv(outfile, sep='\t', index=False)
+            )
         
     def Label2Mapping(self, label):
         ulabel = list(set(label))

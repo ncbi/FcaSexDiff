@@ -11,12 +11,13 @@ samples = (
 )
 #validate(samples, schema="../schemas/samples.schema.yaml")
 
-sex_specific = ['testis', 'ovary', 'male_reproductive_glands', 'gonad', 'all']
+sex_specific = ['testis', 'ovary', 'male_reproductive_glands', 'gonad', 'all', 'test']
 
 samples = samples.query("tissue not in @sex_specific")
 
 #samples = samples.query("tissue in ['leg', 'malpighian_tubule']")
-samples = samples.query("tissue in ['test']")
+#samples = samples.query("tissue in ['test']")
+#samples = samples.query("tissue in ['leg']")
 
 
 final_output = []
