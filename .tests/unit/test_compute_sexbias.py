@@ -33,7 +33,6 @@ def test_compute_sexbias():
             "-F", 
             "-j1",
             "--keep-target-files",
-    
             "--directory",
             workdir,
         ])

@@ -1,6 +1,6 @@
 rule get_loom:
   output:
-    "resources/loom/{tissue}_{fcaver}.loom",
+    "imports/loom/{tissue}_{fcaver}.loom",
   log:
     "logs/get_loom_{tissue}_{fcaver}.log",
   run:
@@ -8,11 +8,11 @@ rule get_loom:
     loom = loom + "/download"
     shell("wget -O {output} {loom}")
 
-downloads = samples.query("loom != ''")
-
+# download looms for samples that have non-empty links
+downloads = samples.query("~(loom.isna() | (loom == ''))", engine="python")
 
 append_final_output(expand(
-  "resources/loom/{tissue}_{fcaver}.loom",
+  "imports/loom/{tissue}_{fcaver}.loom",
   zip,
   tissue=downloads["tissue"],
   fcaver=downloads["fcaver"],

@@ -73,6 +73,7 @@ outpath = Path(snakemake.output[0])
 data = (
     ad.read_h5ad(snakemake.input[0])
     .obs[['sex', 'annotation', 'annotation_broad', 'scpopcorn_cluster']]
+    .query('not scpopcorn_cluster.isnull()', engine='python')
     .assign(sex = lambda df: df.sex.apply(lambda x: x[0].upper()))
     .assign(annotation = lambda df: df.apply(
         lambda x: x['sex'] + '_' + x['annotation'],

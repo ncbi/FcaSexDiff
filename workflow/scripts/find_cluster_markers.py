@@ -16,11 +16,13 @@ PSEUDO_COUNT = 1e-256
 
 exprfile = snakemake.input[0]
 resol = snakemake.wildcards['resol']
-outfile = snakemake.output[0]
+newexprfile = snakemake.output[0]
+markerfile = snakemake.output[1]
 
 print(exprfile)
 print(resol)
-print(outfile)
+print(newexprfile)
+print(markerfile)
 
 def merge_dict(male, female):
     male = {} if male == 0 else literal_eval(male)
@@ -111,72 +113,25 @@ def compute_sexbiased_counts_male_to_female(meta):
 
 
 
-def get_sexbiased_expression_in_cluster(adata):
+def find_markers(adata):
 
     # use normalized expression all through
-    both = np.expm1(adata.X)
-    male = np.expm1(adata[adata.obs.sex == "male"].X)
-    female = np.expm1(adata[adata.obs.sex == "female"].X)
-
-    def all_mean(mat):
-        if mat.shape[0] == 0:
-            # empty matrix, return a vector of zeros
-            return np.zeros(mat.shape[1])
-        return np.ravel(mat.mean(axis=0))
-
-    def non_zero_mean(mat):
-        if mat.shape[0] == 0:
-            # empty matrix, return a vector of zeros
-            return np.zeros(mat.shape[1])
-        # force number of non-zeros in row be a positive
-        # number to avoid divide by error
-        num_nz = (mat!=0).sum(axis=0)
-        num_nz[num_nz == 0] = 1
-        return np.ravel(np.true_divide(mat.sum(axis=0),num_nz))
-
-    def percent_non_zero(mat):
-        if mat.shape[0] == 0:
-            # empty matrix, return a vector of zeros
-            return np.zeros(mat.shape[1])
-        # force number of non-zeros in row be a positive
-        # number to avoid divide by error
-        num_nz = (mat!=0).sum(axis=0)
-        return np.ravel(num_nz/mat.shape[0])
-
-    res = pd.DataFrame({
-        'avg_nz_all'   : non_zero_mean(both),
-        'avg_nz_female': non_zero_mean(female),
-        'avg_nz_male'  : non_zero_mean(male),
-        'avg_all'      : all_mean(both),
-        'avg_female'   : all_mean(female),
-        'avg_male'     : all_mean(male),
-        #'mylfc2'       : np.ravel(np.log2(np.expm1(np.log1p(female).mean(axis=0))/np.expm1(np.log1p(male).mean(axis=0)))),
-        #'mylfc'       : np.ravel(np.log2((female.mean(axis=0)+1e-9)/(male.mean(axis=0)+1e-9))),
-        'log2fc'       : np.log2((all_mean(female)+1e-9)/(all_mean(male)+1e-9)),
-    }, index = adata.var.index)
-
-    ngene = both.shape[1]
-
-    res_de = pd.DataFrame({
-        'log2fc_scanpy' : np.zeros(ngene),
-        'pval'          : np.zeros(ngene) + 1.0,
-        'padj'          : np.zeros(ngene) + 1.0,
-        'score'         : np.zeros(ngene),
-        'pct_female'    : percent_non_zero(female),
-        'pct_male'      : percent_non_zero(male),
-    }, index = adata.var.index)
+    adata.X = adata.layers['norm']
 
     error = False
 
+    markers = pd.DataFrame()
+
     # scanpy assumes expression is already in log scale
-    #adata.X = np.log1p(adata.X)
+    adata.X = np.log1p(adata.X)
     try:
         sc.tl.rank_genes_groups(
-            adata, 'sex', groups=['female'], reference='male',
+            adata, 'cluster', groups="all", reference="rest",
             pts=True, method='wilcoxon', key_added = "wilcoxon"
         )
-    except AttributeError:
+    except AttributeError as e:
         print('\tSample doesn\'t contain one group')
+        print(e)
         error = True
     except IndexError:
         print('\tNot enough cells in one group')
@@ -184,100 +139,84 @@ def get_sexbiased_expression_in_cluster(adata):
     except ZeroDivisionError:
         print('\tZero division!')
         error = True
-    except ValueError:
+    except ValueError as e:
         print('\tSample doesn\'t contain one group')
+        print(e)
         error = True
     if not error:
-        res_de = (
-            pd.DataFrame({
-                col: [t[0] for t in adata.uns['wilcoxon'][rec]]
+        frames = []
+        clusters = adata.obs.cluster.unique()
+        for cls in clusters:
+            frames.append(pd.DataFrame({
+                # t is a rec.array which can be indexed by col name
+                col : [t[cls] for t in adata.uns['wilcoxon'][rec]]
                 for col,rec in [
                     ('symbol','names'),
-                    ('log2fc_scanpy', 'logfoldchanges'),
+                    ('log2fc', 'logfoldchanges'),
                     ('pval', 'pvals'),
                     ('padj', 'pvals_adj'),
                     ('score', 'scores'),
                 ]
-            })
-            .set_index('symbol')
-        )
+            }).set_index('symbol'))
+        markers = pd.concat(frames, axis=1, keys = clusters, names =
+                            ['cluster', 'stats'])
+        markers.columns = markers.columns.swaplevel()
+
+        print(markers)
         # rows in pts are in different order of symbols, handle separately
         pts = pd.DataFrame(adata.uns['wilcoxon']['pts'])
-        pts.columns = [f"pct_{col}" for col in pts.columns]
-        res_de = res_de.merge(pts, left_index=True, right_index=True)
+        pts = pd.concat([pts], axis=1, keys=["pct"], names=["stats", "cluster"])
 
-    return res.merge(res_de, left_index=True, right_index=True)
+        markers = (
+            pd.concat([markers, pts], axis=1)
+            .sort_index(1)
+        )
+        print(markers)
+
+    return adata, markers
 
 
-def do_all(exprfile, reosl, outfile):
+def do_all(exprfile, reosl, newexprfile, markerfile):
     adata = ad.read_h5ad(exprfile)
     adata = adata[adata.obs.sex.isin(["female", "male"])]
 
     assert("cluster" not in adata.obs.columns)
-    adata.obs = adata.obs.assign(cluster = lambda df: df[resol])
+    adata.obs = adata.obs.assign(cluster = lambda df: df[resol].astype(str))
+    adata.obs = adata.obs.assign(cluster = lambda df: df["cluster"].apply(lambda x: f"C{x}"))
     print(adata)
+    print(adata.obs[["cluster"]])
 
 
     count_bias = compute_sexbiased_counts_male_to_female(adata.obs)
     print(count_bias)
 
-    #adata = adata[:, adata.var_names.isin(['kar', 'RNASEK'])]
+    res_ad, markers = find_markers(adata)
+    print(res_ad)
+    print(markers)
 
-    clusters = adata.obs.cluster.unique()
-    #clusters = ["adult Malpighian tubule principal cell"]
-    expr_bias = pd.concat(
-        [
-            get_sexbiased_expression_in_cluster(adata[adata.obs.cluster == x])
-            for x in clusters
-        ],
-        keys = clusters,
-        names = ['cluster', 'stats'],
-        axis = 1
-    )
-    expr_bias.columns = expr_bias.columns.swaplevel()
-    print(expr_bias)
-
-    padj = expr_bias['padj']
-    log2fc_scanpy = expr_bias['log2fc_scanpy']
-    log2fc = expr_bias['log2fc']
-
-
-    gene_bias = np.sign(log2fc)
-    gene_bias[~((padj < 0.05) & (abs(log2fc) > 1))] = 0
-    print(gene_bias)
-
-    scanpy_bias = np.sign(log2fc_scanpy)
-    scanpy_bias[~((padj < 0.05) & (abs(log2fc_scanpy) > 1))] = 0
-    print(scanpy_bias)
-
+    is_marker = (markers['padj'] < 0.05) & (markers['log2fc'] > 1)
 
     gene_meta = (
-        adata.var.loc[gene_bias.index, :]
-        .assign(female_cls = (gene_bias > 0).sum(axis=1))
-        .assign(male_cls = (gene_bias < 0).sum(axis=1))
+        adata.var.loc[markers.index, :]
+        .assign(marker_cls = is_marker.sum(axis=1))
     )
 
     cluster_meta = (
-        count_bias.loc[gene_bias.columns, :]
-        .assign(female_gene = (gene_bias > 0).sum(axis=0))
-        .assign(male_gene = (gene_bias < 0).sum(axis=0))
+        count_bias.loc[is_marker.columns, :]
     )
 
     layers = OrderedDict()
-    for stat in expr_bias.columns.get_level_values("stats").unique():
-        layers[stat] = expr_bias[stat].values
+    for stat in markers.columns.get_level_values("stats").unique():
+        layers[stat] = markers[stat].values
 
-    layers["bias_scanpy"] = sparse.csr_matrix(scanpy_bias)
-
-    adata = ad.AnnData(
-        sparse.csr_matrix(gene_bias),
+    ad.AnnData(
+        sparse.csr_matrix(is_marker),
         obs = gene_meta,
         var = cluster_meta,
         layers = layers,
-    )
-    print(adata)
+    ).write_h5ad(markerfile)
 
-    adata.write_h5ad(outfile)
+    res_ad.write_h5ad(newexprfile)
 
-do_all(exprfile, resol, outfile)
+do_all(exprfile, resol, newexprfile, markerfile)
 
