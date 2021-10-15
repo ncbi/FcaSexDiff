@@ -24,23 +24,23 @@ def log_normalize(infile, outfile):
   from collections import OrderedDict
   adata.layers = OrderedDict()
   adata.layers["umi"] = adata.X.copy()
+  umi = adata.layers["umi"]
 
-  # TODO: change target_sum to 1e4 or None (for median)
-  sc.pp.normalize_total(adata, target_sum=1e6)
+  sc.pp.normalize_total(adata, target_sum=1e4)
   norm = adata.X.copy()
 
   sc.pp.log1p(adata)
-
-  umi = adata.layers["umi"]
 
   adata.var = (
     adata.var
     # augment FBgn id and chromosome with gene symbol in the rows
     .merge(g2chr, how='left', left_index=True, right_index=True)
     # keep average umi of all cells in the tissue
-    .assign(umi_tissue = (umi.sum(axis=0)/(umi!=0).sum(0)).T)
+    .assign(umi_tissue = umi.mean(axis=0).T)
+    .assign(nz_umi_tissue = (umi.sum(axis=0)/(umi!=0).sum(0)).T)
     # keep average normalized expression of all cells in the tissue
-    .assign(norm_tissue = (norm.sum(axis=0)/(norm!=0).sum(0)).T)
+    .assign(norm_tissue = norm.mean(axis=0).T)
+    .assign(nz_norm_tissue = (norm.sum(axis=0)/(norm!=0).sum(0)).T)
   )
 
   adata.write_h5ad(outfile)

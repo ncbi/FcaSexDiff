@@ -100,8 +100,8 @@ print(expr_bias)
 
 
 ordered_rows = [
-    "chr", "symbol", "FBgn", "umi_tissue", "norm_tissue", "female_cls",
-    "male_cls",
+    "chr", "symbol", "FBgn", "umi_tissue", "nz_umi_tissue",
+    "norm_tissue", "nz_norm_tissue", "female_cls", "male_cls",
 ]
 
 ordered_cols = [
