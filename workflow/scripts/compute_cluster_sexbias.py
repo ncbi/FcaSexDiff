@@ -14,6 +14,9 @@ from statsmodels.stats.multitest import multipletests
 PSEUDO_EXPR = 1e-9
 PSEUDO_COUNT = 1e-256
 
+PADJ_CUTOFF_EXPR = 0.05
+LFC_CUTOFF_EXPR = 1
+
 exprfile = snakemake.input[0]
 resol = snakemake.wildcards['resol']
 outfile = snakemake.output[0]
@@ -21,6 +24,126 @@ outfile = snakemake.output[0]
 print(exprfile)
 print(resol)
 print(outfile)
+
+info = dict(
+  cluster = (
+      "Cluster name (cell type if annotation is used)"
+  ),
+  major_annotation = (
+      "Major cell type in the cluster, useful if clusters are"
+      " not by annotation"
+  ),
+  cell_count_female = (
+      "Number of female cells in the cluster"
+  ),
+  cell_count_male = (
+      "Number of male cells in the cluster"
+  ),
+  sample_cell_count_female = (
+      "Number of female cells in the tissue"
+  ),
+  sample_cell_count_male = (
+      "Number of male cells in the tissue"
+  ),
+  log2_count_bias = (
+      "log2((NF + eps)/(NM + eps)) where NF (NM) is the normalized (by total"
+      " cells in the tissue) female (male) cell count for the cluster and"
+      f" eps = {PSEUDO_COUNT}"
+  ),
+  count_bias_padj = (
+      "BH corrected pvalue from Binomial test for cluster-count-bias"
+  ),
+  count_bias_type = (
+      "Cluster is female- or male-biased based on count_bias_padj < 0.05 and "
+      "log2_count_bias > 1 or < -1 (2-fold change)"
+  ),
+  female_gene = (
+      "Number of genes female biased in the cluster"
+  ),
+  male_gene = (
+      "Number of genes male biased in the cluster"
+  ),
+  stats = (
+      "Statistics for a gene within cluster"
+  ),
+  avg_all = (
+      "Average expression of gene in all cells in cluster"
+  ),
+  avg_male = (
+      "Average expression of gene in all male cells in cluster"
+  ),
+  avg_female = (
+      "Average expression of gene in all female cells in cluster"
+  ),
+  avg_nz_all = (
+      "Average expression of gene in all cells in cluster where it expressed"
+  ),
+  avg_nz_male = (
+      "Average expression of gene in all male cells in cluster where it"
+      " expressed"
+  ),
+  avg_nz_female = (
+      "Average expression of gene in all female cells in cluster where it"
+      " expressed"
+  ),
+  frac_female = (
+      "Fraction of female cells where gene is expressed (atleast one UMI)"
+  ),
+  frac_male = (
+      "Fraction of male cells where gene is expressed (atleast one UMI)"
+  ),
+  log2fc = (
+      "Log2 of fold change of average expression in favor of female cells"
+      " against male cells"
+  ),
+  log2fc_scanpy = (
+      "Log2 of fold change of average expression in favor of female cells"
+      " against male cells as computed by scanpy.tl.rank_genes_groups"
+  ),
+  padj = (
+      "BH corrected pvalue from Wilcoxon test for male cells vs female cells"
+      " expression as computed by scanpy.tl.rank_genes_groups"
+  ),
+  bias = (
+      f"Gene is female- or male-biased based on padj < {PADJ_CUTOFF_EXPR}"
+      f" and log2fc > {LFC_CUTOFF_EXPR} or < -{LFC_CUTOFF_EXPR}"
+      f" ({2**LFC_CUTOFF_EXPR}-fold change)"
+  ),
+  bias_scanpy = (
+      f"gene is female- or male-biased based on padj < {PADJ_CUTOFF_EXPR}"
+      f" and log2fc_scanpy > {LFC_CUTOFF_EXPR} or < -{LFC_CUTOFF_EXPR}"
+      f" ({2**LFC_CUTOFF_EXPR}-fold change)"
+  ),
+  chr = (
+      "Chromosome where gene is located"
+  ),
+  symbol = "Gene symbol",
+  FBgn = "Flybase ID of gene",
+  female_cls = (
+      "Number of clusters where gene is female-biased"
+  ),
+  male_cls = (
+      "Number of clusters where gene is male-biased"
+  ),
+  umi_tissue = (
+      "Average number of UMIs for the gene in the whole tissue"
+  ),
+  nz_umi_tissue = (
+      "Average number of UMIs for the gene in cells in the whole tissue where"
+      " it expressed"
+  ),
+  norm_tissue = (
+      "Normalized expression of gene (before log1p) in the whole tissue"
+  ),
+  nz_norm_tissue = (
+      "Normalized expression of gene (before log1p) in cells in whole tissue"
+      " where it expressed"
+  ),
+)
+
+
+print(info)
+
 
 def merge_dict(male, female):
     male = {} if male == 0 else literal_eval(male)
@@ -134,7 +257,7 @@ def get_sexbiased_expression_in_cluster(adata):
         num_nz[num_nz == 0] = 1
         return np.ravel(np.true_divide(mat.sum(axis=0),num_nz))
 
-    def percent_non_zero(mat):
+    def fraction_non_zero(mat):
         if mat.shape[0] == 0:
             # empty matrix, return a vector of zeros
             return np.zeros(mat.shape[1])
@@ -150,9 +273,7 @@ def get_sexbiased_expression_in_cluster(adata):
         'avg_all'      : all_mean(both),
         'avg_female'   : all_mean(female),
         'avg_male'     : all_mean(male),
-        #'mylfc2'       : np.ravel(np.log2(np.expm1(np.log1p(female).mean(axis=0))/np.expm1(np.log1p(male).mean(axis=0)))),
-        #'mylfc'       : np.ravel(np.log2((female.mean(axis=0)+1e-9)/(male.mean(axis=0)+1e-9))),
-        'log2fc'       : np.log2((all_mean(female)+1e-9)/(all_mean(male)+1e-9)),
+        'log2fc'       : np.log2((all_mean(female)+PSEUDO_EXPR)/(all_mean(male)+PSEUDO_EXPR)),
     }, index = adata.var.index)
 
     ngene = both.shape[1]
@@ -162,14 +283,14 @@ def get_sexbiased_expression_in_cluster(adata):
         'pval'          : np.zeros(ngene) + 1.0,
         'padj'          : np.zeros(ngene) + 1.0,
         'score'         : np.zeros(ngene),
-        'pct_female'    : percent_non_zero(female),
-        'pct_male'      : percent_non_zero(male),
+        'frac_female'    : fraction_non_zero(female),
+        'frac_male'      : fraction_non_zero(male),
     }, index = adata.var.index)
 
     error = False
 
     # scanpy assumes expression is already in log scale
-    #adata.X = np.log1p(adata.X)
+
     try:
         sc.tl.rank_genes_groups(
             adata, 'sex', groups=['female'], reference='male',
@@ -203,7 +324,7 @@ def get_sexbiased_expression_in_cluster(adata):
         )
         # rows in pts are in different order of symbols, handle separately
         pts = pd.DataFrame(adata.uns['wilcoxon']['pts'])
-        pts.columns = [f"pct_{col}" for col in pts.columns]
+        pts.columns = [f"frac_{col}" for col in pts.columns]
         res_de = res_de.merge(pts, left_index=True, right_index=True)
 
     return res.merge(res_de, left_index=True, right_index=True)
@@ -217,14 +338,10 @@ def do_all(exprfile, reosl, outfile):
     adata.obs = adata.obs.assign(cluster = lambda df: df[resol])
     print(adata)
 
-
     count_bias = compute_sexbiased_counts_male_to_female(adata.obs)
     print(count_bias)
 
-    #adata = adata[:, adata.var_names.isin(['kar', 'RNASEK'])]
-
     clusters = adata.obs.cluster.unique()
-    #clusters = ["adult Malpighian tubule principal cell"]
     expr_bias = pd.concat(
         [
             get_sexbiased_expression_in_cluster(adata[adata.obs.cluster == x])
@@ -241,13 +358,12 @@ def do_all(exprfile, reosl, outfile):
     log2fc_scanpy = expr_bias['log2fc_scanpy']
     log2fc = expr_bias['log2fc']
 
-
     gene_bias = np.sign(log2fc)
-    gene_bias[~((padj < 0.05) & (abs(log2fc) > 1))] = 0
+    gene_bias[~((padj < PADJ_CUTOFF_EXPR) & (abs(log2fc) > LFC_CUTOFF_EXPR))] = 0
     print(gene_bias)
 
     scanpy_bias = np.sign(log2fc_scanpy)
-    scanpy_bias[~((padj < 0.05) & (abs(log2fc_scanpy) > 1))] = 0
+    scanpy_bias[~((padj < PADJ_CUTOFF_EXPR) & (abs(log2fc_scanpy) > LFC_CUTOFF_EXPR))] = 0
     print(scanpy_bias)
 
 
@@ -267,6 +383,9 @@ def do_all(exprfile, reosl, outfile):
     for stat in expr_bias.columns.get_level_values("stats").unique():
         layers[stat] = expr_bias[stat].values
 
+    uns = OrderedDict()
+    uns["info"] = info
+
     layers["bias_scanpy"] = sparse.csr_matrix(scanpy_bias)
 
     adata = ad.AnnData(
@@ -274,6 +393,7 @@ def do_all(exprfile, reosl, outfile):
         obs = gene_meta,
         var = cluster_meta,
         layers = layers,
+        uns = uns,
     )
     print(adata)
 

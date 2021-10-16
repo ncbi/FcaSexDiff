@@ -21,32 +21,35 @@ class DF2Excel:
     def close(self):
         self.writer.save()
 
-    def single_idx_df_to_excel(self, dataframe, sheet_name, write_header, write_index):
+    def single_idx_df_to_excel(self, dataframe, sheet_name, write_header,
+                               write_index, start_row = 0):
         # make better sheet name for excel
         sheet_name = make_better(sheet_name)
         # now write the actual data without the header
         dataframe.to_excel(
             self.writer,
             sheet_name=sheet_name,
-            startrow=0,
+            startrow=start_row,
             header=write_header,
             index=write_index
         )
         # create excel auto filter
         if write_header:
             self.writer.sheets[sheet_name].autofilter(
-                0, 0, 0, dataframe.shape[1]
+                start_row, 0, start_row, dataframe.shape[1]
             )
 
-    def multi_idx_df_to_excel(self, dataframe, sheet_name):
-        start_row = dataframe.columns.nlevels + 1
-        freeze_row = start_row
-        freeze_col = dataframe.index.nlevels
+    def multi_idx_df_to_excel(self, dataframe, sheet_name, start_row = 0):
         # make better sheet name for excel
         sheet_name = make_better(sheet_name)
         # first write the header structure, keep bare-minimum 1 row for index
-        dataframe.iloc[0:1,:].to_excel(self.writer, sheet_name=sheet_name)
+        dataframe.iloc[0:1,:].to_excel(self.writer, sheet_name=sheet_name,
+                                       startrow=start_row)
+
         # now write the actual data without the header
+        start_row +=  dataframe.columns.nlevels + 1
+        freeze_row = start_row
+        freeze_col = dataframe.index.nlevels
         dataframe.to_excel(
             self.writer,
             sheet_name=sheet_name,
@@ -71,11 +74,13 @@ class DF2Excel:
                 row, freeze_col-1, dataframe.columns.names[row], cell_format
             )
 
-    def write(self, dataframe, sheet_name, write_header=True, write_index=False):
+    def write(self, dataframe, sheet_name, write_header=True,
+              write_index=False, start_row=0):
         if isinstance(dataframe.columns, pd.MultiIndex):
-            self.multi_idx_df_to_excel(dataframe, sheet_name)
+            self.multi_idx_df_to_excel(dataframe, sheet_name, start_row)
         else:
-            self.single_idx_df_to_excel(dataframe, sheet_name, write_header, write_index)
+            self.single_idx_df_to_excel(dataframe, sheet_name, write_header,
+                                        write_index, start_row)
 
     def convert_single(self, hdf_path, key):
         df = pd.read_hdf(hdf_path, key=key)
