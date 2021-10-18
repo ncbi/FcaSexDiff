@@ -20,15 +20,17 @@ print(to_hide)
 
 
 ordered_stats = [
-    "avg_nz_female", "avg_nz_male", "avg_all", "avg_female", "avg_male",
-    "log2fc", "log2fc_scanpy", "padj", "frac_female", "frac_male",
-    "bias", "bias_scanpy",
+    "avg_all", "avg_female", "avg_male",
+    "avg_nz_female", "avg_nz_male",
+    "frac_female", "frac_male",
+    "padj", "log2fc", "bias",
+    "log2fc_scanpy", "bias_scanpy",
 ]
 
 
 ordered_rows = [
-    "chr", "symbol", "FBgn", "umi_tissue", "nz_umi_tissue",
-    "norm_tissue", "nz_norm_tissue", "female_cls", "male_cls",
+    "chr", "symbol", "FBgn", "umi_tissue", "norm_tissue",
+    "nz_umi_tissue", "nz_norm_tissue", "female_cls", "male_cls",
 ]
 
 ordered_cols = [

@@ -14,7 +14,7 @@ from statsmodels.stats.multitest import multipletests
 PSEUDO_EXPR = 1e-9
 PSEUDO_COUNT = 1e-256
 
-PADJ_CUTOFF_EXPR = 0.05
+PADJ_CUTOFF_EXPR = 0.001
 LFC_CUTOFF_EXPR = 1
 
 exprfile = snakemake.input[0]
