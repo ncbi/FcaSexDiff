@@ -28,6 +28,7 @@ samples = samples.query("tissue not in @exclude")
 #samples = samples.query("tissue in ['malpighian_tubule']")
 #samples = samples.query("tissue in ['test']")
 #samples = samples.query("tissue in ['body', 'malpighian_tubule']")
+samples = samples.query("tissue in ['body']")
 
 
 final_output = []

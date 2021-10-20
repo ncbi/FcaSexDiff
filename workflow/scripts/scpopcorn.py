@@ -431,7 +431,14 @@ class SingleCellData():
         #PDIST = self.Pdist_Corrcoef_Count_LogCount(XCellSingleNorm, XCellSingleNorm2)#self.Pdist_Corrcoef(XCellSingleNorm)#pdist(XCellSingleNorm,'cosine')#self.Pdist_PearsonDisMat_Single(XCellSingleNorm)##self.Pdist_kendalltau_weight(XCellSingleNorm)#
         Z = linkage(XCellSingleNorm, 'ward')
     
-        self.SuperClusterinOne = fcluster(Z, NumSuperCell, criterion='maxclust')
+        if (NumSuperCell < self.NumCell):
+            self.SuperClusterinOne = fcluster(Z, NumSuperCell, criterion='maxclust')
+        else:
+            NumSuperCell = self.NumCell
+            self.SuperClusterinOne = np.zeros(NumSuperCell)
+            for i in range(NumSuperCell):
+                self.SuperClusterinOne[i] = i+1
+
         unique, counts = np.unique(self.SuperClusterinOne, return_counts=True)
         #print(dict(zip(unique, counts)))
         

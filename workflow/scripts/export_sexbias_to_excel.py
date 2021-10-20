@@ -83,17 +83,6 @@ def prepare_bias_table(adata):
     expr_bias.columns = pd.MultiIndex.from_frame(
         expr_bias.columns.to_frame(index=False)
         .merge(adata.var.reset_index(), how="left")
-        .assign(count_bias_padj = lambda df: df['padj_binom']) #.apply(pvalstr))
-        .assign(count_bias_type = lambda df: df.apply(
-            lambda x: "Female" if (((x['padj_binom'] < 0.05) &
-                                    (x["log2_count_bias"] > 1)) |
-                                   (x["cluster_type"] == "female_only")) else
-                      "Male"  if (((x['padj_binom'] < 0.05) &
-                                    (x["log2_count_bias"] < -1)) |
-                                   (x["cluster_type"] == "male_only")) else
-                      "Unbiased",
-            axis=1
-        ))
         [ordered_cols]
     )
 

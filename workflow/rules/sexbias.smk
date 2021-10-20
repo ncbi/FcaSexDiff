@@ -48,6 +48,7 @@ append_final_output(
   expand(
     expand(
       [
+        "exports/sexdiff_h5ad/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}.h5ad",
         "exports/sexdiff_xlsx/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}.xlsx",
         "exports/extras/maplots/resol~{resol}/maplots_{tissue}_{fcaver}_{resol}.pdf",
       ],

@@ -8,6 +8,7 @@ from tqdm import tqdm
 from scipy import sparse
 from scipy.stats import binom_test
 from scipy.stats import fisher_exact
+from scipy.stats import mannwhitneyu
 from collections import OrderedDict
 from statsmodels.stats.multitest import multipletests
 
@@ -146,44 +147,86 @@ print(info)
 
 
 def merge_dict(male, female):
-    male = {} if male == 0 else literal_eval(male)
-    female = {} if female == 0 else literal_eval(female)
+
+    male = {
+        sample:literal_eval(entry)
+        for sample,entry in male.items()
+        if entry != 0
+    }
+    female = {
+        sample:literal_eval(entry)
+        for sample,entry in female.items()
+        if entry != 0
+    }
+
+    male = pd.DataFrame(male).T.to_dict()
+    female = pd.DataFrame(female).T.to_dict()
 
     # return a tuple (#female, #male) for each key
     return {
-        k: (female.get(k, 0), male.get(k, 0))
+        k: (female.get(k, {}), male.get(k, {}))
         for k in set(female) | set(male)
     }
 
 
 def compute_sexbiased_counts_male_to_female(meta):
-    meta = meta[["sex", "cluster", "annotation"]]
-
-    # count totals cells in sample for each sex
-    total  = (
-        meta[['sex']].assign(sample_cell_count=1)
-        .groupby('sex')
-        .count()
+    meta = (
+        meta[["sex", "cluster", "annotation", "sample_id"]]
+        #.assign(sample1 = lambda df: df.sample_id.str.split("__").str[0])
+        .assign(sample_id = lambda df: df.sample_id.str.split("__").str[1].str.split("_").str[0])
     )
 
-    # compute cell_fraction (normalized cell count) for each sex
-    # also keep count of annotated cell types in each cluster 
-    res = (
-        meta.assign(cell_count=1)
-        .groupby(['cluster', 'sex'])
-        .agg({
-            'cell_count': 'sum',
-            'annotation': lambda x: str(
-                {k:v for k,v in x.value_counts().items() if v > 0}
-            )
-        })
-        .unstack('sex', fill_value=0)
-        .stack('sex')
-        .merge(total, left_on='sex', right_on='sex', left_index=True,
-               right_index=True)
-        .assign(cell_fraction = lambda df: df.cell_count / df.sample_cell_count)
-        .unstack('sex', fill_value=0)
+    print(meta)
+
+    def process_single_sex(meta):
+        meta = meta[["sample_id", "cluster", "annotation"]]
+        total_count = meta.shape[0]
+
+        # count totals cells in each sample in tissue for each sex
+        sample  = (
+            meta[['sample_id']].assign(sample_cell_count=1)
+            .groupby(['sample_id'])
+            .count()
+        )
+        print(sample)
+
+        # compute cell_fraction (normalized cell count) for each sex
+        # also keep count of annotated cell types in each cluster 
+        res = (
+            meta.assign(cell_count=1)
+            .groupby(['sample_id', 'cluster'])
+            .agg({
+                'cell_count': 'sum',
+                'annotation': lambda x: str(
+                    {k:v for k,v in x.value_counts().items() if v > 0}
+                )
+            })
+            .merge(sample, left_index=True, right_index=True)
+            .fillna(0)
+            .assign(cell_fraction = lambda df: df.cell_count / df.sample_cell_count)
+            .groupby(['cluster'])
+            # now save each entry as a dictionary keyed by sample_id
+            .agg(lambda x: dict(x.reset_index(level=['cluster'], drop=True)))
+            .assign(total_count = total_count)
+        )
+
+        return res
+
+    female_meta = meta.query('sex == "female"')
+    male_meta = meta.query('sex == "male"')
+
+    res = pd.concat(
+        [
+            process_single_sex(female_meta),
+            process_single_sex(male_meta),
+        ],
+        axis = 1,
+        keys = ["female", "male"],
+        names = ["sex", "stats"],
     )
+    # move stats at the top of column index
+    # and rearrange columns so that stats for the two sexes are together
+    res = res.swaplevel(axis=1).sort_index(axis=1)
 
     # flatten columns for both sexes
     res.columns = ['_'.join(x) for x in res.columns]
@@ -196,32 +239,54 @@ def compute_sexbiased_counts_male_to_female(meta):
 
     # major annotation is one which has maximum sum of (#female, #male) tuple
     res['major_annotation'] = res['annotation'].apply(
-        lambda x: max(x, key=lambda k: sum(x.get(k)))
+        lambda x: max(x, key=lambda k: (
+            sum(x.get(k)[0].values()) + sum(x.get(k)[1].values())
+        ))
     )
 
+    def get_list(x):
+        return [] if pd.isna(x) else list(x.values())
+
     res['cluster_type'] = res.apply(
-        lambda x: 'male_only' if x['cell_count_female'] == 0 else
-                  'female_only' if x['cell_count_male'] == 0 else
+        lambda x: 'male_only' if sum(get_list(x['cell_count_female'])) == 0 else
+                  'female_only' if sum(get_list(x['cell_count_male'])) == 0 else
                   'has_both_sex',
         axis = 1
     )
 
-    res['log2_count_bias'] = np.log2(
-        (PSEUDO_COUNT + res.cell_fraction_female) /
-        (PSEUDO_COUNT + res.cell_fraction_male)
-    )
 
     def test_significance(x):
-        nsucc = x['cell_count_male']
-        nfail = x['cell_count_female']
-        sample_succ = x['sample_cell_count_male']
-        sample_fail = x['sample_cell_count_female']
+        female_counts = get_list(x['cell_count_female'])
+        male_counts = get_list(x['cell_count_male'])
+        sample_female_counts = get_list(x['sample_cell_count_female'])
+        sample_male_counts = get_list(x['sample_cell_count_male'])
+        female_cell_fractions = get_list(x['cell_fraction_female'])
+        male_cell_fractions = get_list(x['cell_fraction_male'])
+
+        nsucc = sum(female_counts)
+        nfail = sum(male_counts)
+        sample_succ = sum(sample_female_counts)
+        sample_fail = sum(sample_male_counts)
+
         prob = sample_succ / (sample_succ + sample_fail)
-        binom_res = binom_test([nsucc, nfail], p = prob, alternative = 'two-sided')
-        fisher_res = fisher_exact([[nsucc, sample_succ - nsucc],
-                                   [nfail, sample_fail - nfail]],
-                                  alternative = 'two-sided')[1]
-        return pd.Series({'pval_binom': binom_res, 'pval_fisher':fisher_res})
+
+        pval_binom = binom_test([nsucc, nfail], p = prob, alternative = 'two-sided')
+        pval_fisher = fisher_exact([[nsucc, sample_succ - nsucc],
+                                    [nfail, sample_fail - nfail]],
+                                   alternative = 'two-sided')[1]
+        pval_wilcox = mannwhitneyu(female_cell_fractions, male_cell_fractions)[1]
+
+        log2bias = np.log2(
+            (PSEUDO_COUNT + np.mean(female_cell_fractions)) /
+            (PSEUDO_COUNT + np.mean(male_cell_fractions))
+        )
+
+        return pd.Series({
+            'log2_count_bias': log2bias,
+            'pval_binom'     : pval_binom,
+            'pval_fisher'    : pval_fisher,
+            'pval_wilcox'    : pval_wilcox,
+        })
 
     res = res.merge(res.apply(test_significance, axis=1),
                     left_index=True, right_index=True)
@@ -229,6 +294,31 @@ def compute_sexbiased_counts_male_to_female(meta):
     # pvals_corrected 2nd item in returned tuple from multipletests
     res['padj_binom'] = multipletests(res['pval_binom'], method='fdr_bh')[1]
     res['padj_fisher'] = multipletests(res['pval_fisher'], method='fdr_bh')[1]
+    res['padj_wilcox'] = multipletests(res['pval_wilcox'], method='fdr_bh')[1]
+
+    n_female_samples = len(female_meta.sample_id.unique())
+    n_male_samples = len(male_meta.sample_id.unique())
+
+    padj_use = (
+        "padj_wilcox" if ((n_female_samples > 1) and (n_male_samples > 1)) else
+        "padj_binomial"
+    )
+
+    res = (
+        res.assign(count_bias_padj = lambda df: df[padj_use]) #.apply(pvalstr))
+        .assign(count_bias_type = lambda df: df.apply(
+            lambda x: "Female" if (((x['count_bias_padj'] < 0.05) &
+                                    (x["log2_count_bias"] > 1)) |
+                                   (x["cluster_type"] == "female_only")) else
+                      "Male"  if (((x['count_bias_padj'] < 0.05) &
+                                    (x["log2_count_bias"] < -1)) |
+                                   (x["cluster_type"] == "male_only")) else
+                      "Unbiased",
+            axis=1
+        ))
+    )
+    print(res)
+    #res.to_excel("haha.xlsx")
 
     return res
 
