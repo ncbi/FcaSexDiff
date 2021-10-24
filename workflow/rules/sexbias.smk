@@ -16,15 +16,6 @@ rule export_excel:
   script:
     "../scripts/export_sexbias_to_excel.py"
 
-rule plot_ma_plots:
-  input:
-    "exports/sexdiff_h5ad/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}.h5ad",
-  output:
-    "exports/extras/maplots/resol~{resol}/maplots_{tissue}_{fcaver}_{resol}.pdf",
-  script:
-    "../scripts/plot_ma_plots.R"
-
-from itertools import cycle
 
 rule summarize_sexbias:
   input:
@@ -44,22 +35,52 @@ rule summarize_sexbias:
     "../scripts/summarize_sexbias.py"
 
 
+rule plot_ma_plots:
+  input:
+    "exports/sexdiff_h5ad/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}.h5ad",
+  output:
+    "exports/extras/maplots/resol~{resol}/maplots_{tissue}_{fcaver}_{resol}.pdf",
+  script:
+    "../scripts/plot_ma_plots.R"
+
+
+rule plot_scatter_count_bias:
+  input:
+    "exports/sexdiff_h5ad/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}.h5ad",
+  output:
+    "exports/extras/scatter_plots/resol~{resol}/scatter_count_bias_{tissue}_{fcaver}_{resol}.pdf",
+  script:
+    "../scripts/plot_scatter_count_bias.R"
+
+
+rule draw_tsne_count_bias:
+  input:
+    "scraps/lognorm_h5ad/lognorm_{tissue}_{fcaver}.h5ad",
+    "exports/sexdiff_h5ad/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}.h5ad",
+  output:
+    "exports/extras/scatter_plots/resol~{resol}/tsne_count_bias_{tissue}_{fcaver}_{resol}.pdf",
+  script:
+    "../scripts/draw_tsne_count_bias.R"
+
+
+tasks = samples.explode("resols")
+
 append_final_output(
-  expand(
     expand(
       [
         "exports/sexdiff_h5ad/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}.h5ad",
         "exports/sexdiff_xlsx/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}.xlsx",
+        "exports/extras/scatter_plots/resol~{resol}/tsne_count_bias_{tissue}_{fcaver}_{resol}.pdf",
+        "exports/extras/scatter_plots/resol~{resol}/scatter_count_bias_{tissue}_{fcaver}_{resol}.pdf",
         "exports/extras/maplots/resol~{resol}/maplots_{tissue}_{fcaver}_{resol}.pdf",
       ],
       zip,
       allow_missing=True,
-      tissue=samples["tissue"],
-      fcaver=samples["fcaver"],
-    ),
-    resol=['annotation']
-  ) + [
-    "exports/extras/summary_sexbiased_genes_annotation.xlsx",
-  ]
+      tissue=tasks["tissue"],
+      fcaver=tasks["fcaver"],
+      resol=tasks["resols"],
+    ) + [
+      "exports/extras/summary_sexbiased_genes_annotation.xlsx",
+    ]
 )
 

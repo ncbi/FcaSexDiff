@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import json
 import pandas as pd
 import numpy as np
 import scanpy as sc
@@ -9,11 +10,16 @@ from scipy import sparse
 from scipy.stats import binom_test
 from scipy.stats import fisher_exact
 from scipy.stats import mannwhitneyu
+from scipy.stats import ttest_ind
 from collections import OrderedDict
 from statsmodels.stats.multitest import multipletests
+from numpyencoder import NumpyEncoder # Needed for numpy -> jason conversion
 
 PSEUDO_EXPR = 1e-9
 PSEUDO_COUNT = 1e-256
+
+PADJ_CUTOFF_COUNT = 0.05
+LFC_CUTOFF_COUNT = 1
 
 PADJ_CUTOFF_EXPR = 0.001
 LFC_CUTOFF_EXPR = 1
@@ -28,41 +34,119 @@ print(outfile)
 
 info = dict(
   cluster = (
-      "Cluster name (cell type if annotation is used)"
+    "Cluster name (cell type if annotation is used)"
+  ),
+  annotations_female = (
+    "Replicate-wise counts of annotated celltypes among female cells in the cluster"
+  ),
+  annotations_male = (
+    "Replicate-wise counts of annotated celltypes among male cells in the cluster"
+  ),
+  annotations = (
+    "Sex and replicate -wise counts of annotated celltypes among all cells in the cluster"
   ),
   major_annotation = (
-      "Major cell type in the cluster, useful if clusters are"
+      "Major annotated celltype in the cluster, useful if clusters are"
       " not by annotation"
   ),
-  cell_count_female = (
-      "Number of female cells in the cluster"
+  tissue_count_female = (
+    "Number of female cells in the tissue (combining all replicates)"
   ),
-  cell_count_male = (
-      "Number of male cells in the cluster"
+  tissue_count_male = (
+    "Number of male cells in the tissue (combining all replicates)"
   ),
-  sample_cell_count_female = (
-      "Number of female cells in the tissue"
+  cluster_type = (
+    "Classify cluster based on whether there is at least one cell in the cluster from either sex"
   ),
-  sample_cell_count_male = (
-      "Number of male cells in the tissue"
+  cluster_count_female = (
+      "Number of female cells in the cluster (combining all replicates)"
+  ),
+  cluster_count_male = (
+      "Number of male cells in the cluster (combining all replicates)"
+  ),
+  tissue_rep_counts_female = (
+      "Replicate-wise counts of female cells in the tissue"
+  ),
+  tissue_rep_counts_male = (
+      "Replicate-wise counts of male cells in the tissue"
+  ),
+  cluster_rep_counts_female = (
+      "Replicate-wise counts of female cells in the cluster"
+  ),
+  cluster_rep_counts_male = (
+      "Replicate-wise counts of male cells in the cluster"
+  ),
+  cluster_frac_female = (
+    "Fraction of cells in the cluster that are female (combining all replicates)"
+  ),
+  cluster_frac_male = (
+    "Fraction of cells in the cluster that are male (combining all replicates)"
+  ),
+  cluster_rep_fracs_female = (
+    "Replicate-wise fractions of cells in the cluster that are female"
+  ),
+  cluster_rep_fracs_male = (
+    "Replicate-wise fractions of cells in the cluster that are male"
+  ),
+  cluster_rep_fracs_mean_female = (
+    "Mean of replicate-wise fractions of cells in the cluster that are female "
+    "(should differ from fraction of cells in the cluster that are female if the "
+    "replicates have different number of cells)"
+  ),
+  cluster_rep_fracs_mean_male = (
+    "Mean of replicate-wise fractions of cells in the cluster that are male "
+    "(should differ from fraction of cells in the cluster that are male if the "
+    "replicates have different number of cells)"
+  ),
+  cluster_rep_fracs_sd_female = (
+    "Standard deviation of replicate-wise fractions of cells in the cluster that are female"
+  ),
+  cluster_rep_fracs_sd_male = (
+    "Standard deviation of replicate-wise fractions of cells in the cluster that are male"
+  ),
+  pval_binom = (
+    "Pvalue from bionamial test on the counts considering all replicates together"
+  ),
+  pval_fisher = (
+    "Pvalue from Fisher's test on the counts considering all replicates together"
+  ),
+  pval_wilcox = (
+    "Pvalue from Wilcoxon-Mann-Whitney U test on the replicate-wise fractions"
+  ),
+  pval_ttest = (
+    "Pvalue from 2-sample t test on the replicate-wise fractions"
+  ),
+  padj_binom = (
+      "BH corrected pvalue from binomial test on the counts considering all replicates together"
+  ),
+  padj_fisher = (
+    "BH corrected pvalue from Fisher's test on the counts considering all replicates together"
+  ),
+  padj_wilcox = (
+    "BH corrected pvalue from Wilcoxon-Mann-Whitney U test on the replicate-wise fractions"
+  ),
+  padj_ttest = (
+    "BH corrected pvalue from s-sample t test on the replicate-wise fractions"
   ),
   log2_count_bias = (
-      "log2((NF + eps)/(NM + eps)) where NF (NM) is the normalized (by total"
-      " cells in the tissue) female (male) cell count for the cluster and"
+      "log2((NF + eps)/(NM + eps)) where NF (NM) is the replicate-average "
+      " fraction of cells in cluster that are female (male) and"
       f" eps = {PSEUDO_COUNT}"
   ),
   count_bias_padj = (
-      "BH corrected pvalue from Binomial test for cluster-count-bias"
+      "BH corrected pvalue from Binomial test for tissues having single "
+      "replicate, otherwise from Wilcoxon-Mann-Whitney U test"
   ),
   count_bias_type = (
-      "Cluster is female- or male-biased based on count_bias_padj < 0.05 and "
-      "log2_count_bias > 1 or < -1 (2-fold change)"
+      f"Cluster is female- or male-biased based on count_bias_padj < "
+      f"{PADJ_CUTOFF_COUNT} and log2_count_bias > {LFC_CUTOFF_COUNT} or "
+      f"< -{LFC_CUTOFF_COUNT} ({2**LFC_CUTOFF_COUNT}-fold change)"
   ),
   female_gene = (
-      "Number of genes female biased in the cluster"
+      "Number of genes female-biased in the cluster"
   ),
   male_gene = (
-      "Number of genes male biased in the cluster"
+      "Number of genes male-biased in the cluster"
   ),
   stats = (
       "Statistics for a gene within cluster"
@@ -143,77 +227,139 @@ info = dict(
 )
 
 
-print(info)
+def merge_annotations(female, male):
+    if female == 0: female = "{}"
+    if male == 0: male = "{}"
+    return json.dumps(
+        pd.concat(
+            {
+                "f": pd.DataFrame(json.loads(female)),
+                "m": pd.DataFrame(json.loads(male)),
+            },
+            names = ["sex", "replicate"],
+            axis=1
+        )
+        .T
+        .fillna(0)
+        .groupby("sex")
+        .agg(lambda x: {
+            k:v for k,v in dict(x.reset_index("sex", drop=True)).items()
+            if v > 0
+        })
+        .agg(lambda x: dict(x))
+        .to_dict(),
+        cls=NumpyEncoder
+    )
 
-
-def merge_dict(male, female):
-
-    male = {
-        sample:literal_eval(entry)
-        for sample,entry in male.items()
-        if entry != 0
-    }
-    female = {
-        sample:literal_eval(entry)
-        for sample,entry in female.items()
-        if entry != 0
-    }
-
-    male = pd.DataFrame(male).T.to_dict()
-    female = pd.DataFrame(female).T.to_dict()
-
-    # return a tuple (#female, #male) for each key
-    return {
-        k: (female.get(k, {}), male.get(k, {}))
-        for k in set(female) | set(male)
-    }
-
+def get_major_annotation(x):
+    return (
+        pd.concat(
+            {k: pd.DataFrame(v).T for k, v in json.loads(x).items()},
+            names = ["annotation", "sex"],
+            axis=0
+        )
+        .fillna(0)
+        .reset_index()
+        .melt(id_vars=["annotation", "sex"],
+              var_name="replicate",
+              value_name="cell_count")
+        .groupby("annotation")
+        .agg("sum")
+        .idxmax()
+        ["cell_count"]
+     )
 
 def compute_sexbiased_counts_male_to_female(meta):
     meta = (
         meta[["sex", "cluster", "annotation", "sample_id"]]
-        #.assign(sample1 = lambda df: df.sample_id.str.split("__").str[0])
-        .assign(sample_id = lambda df: df.sample_id.str.split("__").str[1].str.split("_").str[0])
+        .rename(columns={"annotation": "annotations", "sample_id": "replicate"})
+        #.assign(replicate = lambda df: df.replicate.str.split("__").str[0])
+        .assign(replicate = lambda df: df.replicate.str.split("__").str[1].str.split("_").str[0])
+        .set_index("sex")
     )
-
     print(meta)
 
+    def get_list(x):
+        return [] if pd.isna(x) or (x == 0) else list(json.loads(x).values())
+
     def process_single_sex(meta):
-        meta = meta[["sample_id", "cluster", "annotation"]]
-        total_count = meta.shape[0]
+        tissue_count = meta.shape[0]
 
-        # count totals cells in each sample in tissue for each sex
-        sample  = (
-            meta[['sample_id']].assign(sample_cell_count=1)
-            .groupby(['sample_id'])
-            .count()
+        # count totals cells in each replicate in tissue
+        replicate_counts  = (
+            meta[["replicate"]]
+            .assign(tissue_rep_counts=1)
+            .groupby(['replicate'])
+            .agg("sum")
         )
-        print(sample)
+        print(replicate_counts)
 
-        # compute cell_fraction (normalized cell count) for each sex
+        def agg_normal(x):
+            x = x.reset_index(level=['cluster'], drop=True)
+            return json.dumps(dict(x), cls=NumpyEncoder)
+
+        def agg_nested(x):
+            x = x.reset_index(level=['cluster'], drop=True)
+            x = x.apply(lambda r: json.loads(r))
+            return json.dumps(dict(x), cls=NumpyEncoder)
+
+        # compute cluster_rep_fracs (normalized cell count
+        # for each replicate within the tissue separately)
         # also keep count of annotated cell types in each cluster 
         res = (
-            meta.assign(cell_count=1)
-            .groupby(['sample_id', 'cluster'])
+            meta.assign(cluster_rep_counts=1)
+            .groupby(['replicate', 'cluster'])
             .agg({
-                'cell_count': 'sum',
-                'annotation': lambda x: str(
-                    {k:v for k,v in x.value_counts().items() if v > 0}
-                )
+                'cluster_rep_counts': 'sum',
+                'annotations': lambda x: json.dumps({
+                    k:v for k,v in x.value_counts().items() if v > 0
+                })
             })
-            .merge(sample, left_index=True, right_index=True)
+            .merge(replicate_counts, left_index=True, right_index=True)
             .fillna(0)
-            .assign(cell_fraction = lambda df: df.cell_count / df.sample_cell_count)
+            .assign(cluster_rep_fracs = lambda df: (
+                df.cluster_rep_counts / df.tissue_rep_counts
+            ))
             .groupby(['cluster'])
-            # now save each entry as a dictionary keyed by sample_id
-            .agg(lambda x: dict(x.reset_index(level=['cluster'], drop=True)))
-            .assign(total_count = total_count)
+            # now save each entry as a dictionary keyed by replicate
+            .agg({
+                "annotations" : agg_nested,
+                "cluster_rep_fracs": agg_normal,
+                "cluster_rep_counts": agg_normal,
+                "tissue_rep_counts": agg_normal,
+            })
         )
+
+        print(res)
+
+        # also add information combining all replicates together
+
+        res_reps_together = (
+            meta[["cluster"]]
+            .assign(cluster_count=1)
+            .groupby(['cluster'])
+            .agg('sum')
+            .assign(tissue_count = tissue_count)
+            .assign(cluster_frac = lambda df: df.cluster_count / df.tissue_count)
+        )
+        print(res_reps_together)
+
+        res = (
+            res.merge(res_reps_together, left_index=True, right_index=True)
+            .assign(cluster_rep_fracs_mean = lambda df: (
+                df.cluster_rep_fracs.apply(lambda x: np.mean(get_list(x)))
+            ))
+            .assign(cluster_rep_fracs_sd = lambda df: (
+                df.cluster_rep_fracs.apply(lambda x: np.std(get_list(x), ddof = 1))
+            ))
+        )
+
+        print(res)
 
         return res
 
-    female_meta = meta.query('sex == "female"')
-    male_meta = meta.query('sex == "male"')
+    female_meta = meta.xs("female")
+    male_meta = meta.xs("male")
 
     res = pd.concat(
         [
@@ -224,6 +370,10 @@ def compute_sexbiased_counts_male_to_female(meta):
         keys = ["female", "male"],
         names = ["sex", "stats"],
     )
+    # it may happen that all replicates of a single sex are
+    # are not present
+    res = res.fillna(0)
+
     # move stats at the top of column index
     # and rearrange columns so that stats for the two sexes are together
     res = res.swaplevel(axis=1).sort_index(axis=1)
@@ -232,41 +382,32 @@ def compute_sexbiased_counts_male_to_female(meta):
     res.columns = ['_'.join(x) for x in res.columns]
 
     # flattening annotations require merging two dictionaries for counts
-    res['annotation'] = res.apply(
-        lambda x: merge_dict(x['annotation_male'], x['annotation_female']),
+    res['annotations'] = res.apply(
+        lambda x: merge_annotations(x['annotations_female'], x['annotations_male']),
         axis = 1
     )
+    print(res[['annotations']])
 
-    # major annotation is one which has maximum sum of (#female, #male) tuple
-    res['major_annotation'] = res['annotation'].apply(
-        lambda x: max(x, key=lambda k: (
-            sum(x.get(k)[0].values()) + sum(x.get(k)[1].values())
-        ))
-    )
-
-    def get_list(x):
-        return [] if pd.isna(x) else list(x.values())
+    
+    # major annotation is one which has maximum sum from male and female cells
+    res['major_annotation'] = res['annotations'].apply(get_major_annotation)
 
     res['cluster_type'] = res.apply(
-        lambda x: 'male_only' if sum(get_list(x['cell_count_female'])) == 0 else
-                  'female_only' if sum(get_list(x['cell_count_male'])) == 0 else
+        lambda x: 'male_only' if x['cluster_count_female'] == 0 else
+                  'female_only' if x['cluster_count_male'] == 0 else
                   'has_both_sex',
         axis = 1
     )
 
 
     def test_significance(x):
-        female_counts = get_list(x['cell_count_female'])
-        male_counts = get_list(x['cell_count_male'])
-        sample_female_counts = get_list(x['sample_cell_count_female'])
-        sample_male_counts = get_list(x['sample_cell_count_male'])
-        female_cell_fractions = get_list(x['cell_fraction_female'])
-        male_cell_fractions = get_list(x['cell_fraction_male'])
+        female_cell_fracs = get_list(x['cluster_rep_fracs_female'])
+        male_cell_fracs = get_list(x['cluster_rep_fracs_male'])
 
-        nsucc = sum(female_counts)
-        nfail = sum(male_counts)
-        sample_succ = sum(sample_female_counts)
-        sample_fail = sum(sample_male_counts)
+        nsucc = x['cluster_count_female']
+        nfail = x['cluster_count_male']
+        sample_succ = x['tissue_count_female']
+        sample_fail = x['tissue_count_male']
 
         prob = sample_succ / (sample_succ + sample_fail)
 
@@ -274,11 +415,13 @@ def compute_sexbiased_counts_male_to_female(meta):
         pval_fisher = fisher_exact([[nsucc, sample_succ - nsucc],
                                     [nfail, sample_fail - nfail]],
                                    alternative = 'two-sided')[1]
-        pval_wilcox = mannwhitneyu(female_cell_fractions, male_cell_fractions)[1]
+        pval_wilcox = mannwhitneyu(female_cell_fracs, male_cell_fracs)[1]
+        pval_ttest = ttest_ind(female_cell_fracs, male_cell_fracs,
+                               equal_var=False)[1]
 
         log2bias = np.log2(
-            (PSEUDO_COUNT + np.mean(female_cell_fractions)) /
-            (PSEUDO_COUNT + np.mean(male_cell_fractions))
+            (PSEUDO_COUNT + np.mean(female_cell_fracs)) /
+            (PSEUDO_COUNT + np.mean(male_cell_fracs))
         )
 
         return pd.Series({
@@ -286,6 +429,7 @@ def compute_sexbiased_counts_male_to_female(meta):
             'pval_binom'     : pval_binom,
             'pval_fisher'    : pval_fisher,
             'pval_wilcox'    : pval_wilcox,
+            'pval_ttest'     : pval_ttest,
         })
 
     res = res.merge(res.apply(test_significance, axis=1),
@@ -295,30 +439,30 @@ def compute_sexbiased_counts_male_to_female(meta):
     res['padj_binom'] = multipletests(res['pval_binom'], method='fdr_bh')[1]
     res['padj_fisher'] = multipletests(res['pval_fisher'], method='fdr_bh')[1]
     res['padj_wilcox'] = multipletests(res['pval_wilcox'], method='fdr_bh')[1]
+    res['padj_ttest'] = multipletests(res['pval_ttest'].fillna(1.0), method='fdr_bh')[1]
 
-    n_female_samples = len(female_meta.sample_id.unique())
-    n_male_samples = len(male_meta.sample_id.unique())
+    n_female_reps = len(female_meta.replicate.unique())
+    n_male_reps = len(male_meta.replicate.unique())
 
     padj_use = (
-        "padj_wilcox" if ((n_female_samples > 1) and (n_male_samples > 1)) else
+        "padj_wilcox" if ((n_female_reps > 1) and (n_male_reps > 1)) else
         "padj_binomial"
     )
 
     res = (
         res.assign(count_bias_padj = lambda df: df[padj_use]) #.apply(pvalstr))
         .assign(count_bias_type = lambda df: df.apply(
-            lambda x: "Female" if (((x['count_bias_padj'] < 0.05) &
-                                    (x["log2_count_bias"] > 1)) |
+            lambda x: "Female" if (((x['count_bias_padj'] < PADJ_CUTOFF_COUNT) &
+                                    (x["log2_count_bias"] > LFC_CUTOFF_COUNT)) |
                                    (x["cluster_type"] == "female_only")) else
-                      "Male"  if (((x['count_bias_padj'] < 0.05) &
-                                    (x["log2_count_bias"] < -1)) |
+                      "Male"  if (((x['count_bias_padj'] < PADJ_CUTOFF_COUNT) &
+                                    (x["log2_count_bias"] < -LFC_CUTOFF_COUNT)) |
                                    (x["cluster_type"] == "male_only")) else
                       "Unbiased",
             axis=1
         ))
     )
     print(res)
-    #res.to_excel("haha.xlsx")
 
     return res
 
@@ -425,7 +569,11 @@ def do_all(exprfile, reosl, outfile):
     adata = adata[adata.obs.sex.isin(["female", "male"])]
 
     assert("cluster" not in adata.obs.columns)
-    adata.obs = adata.obs.assign(cluster = lambda df: df[resol])
+    adata.obs = adata.obs.assign(cluster = lambda df: (
+        df[resol] if resol == "annotaion" else df[resol].apply(
+            lambda x: f"{resol}C{x}"
+        )
+    ))
     print(adata)
 
     count_bias = compute_sexbiased_counts_male_to_female(adata.obs)

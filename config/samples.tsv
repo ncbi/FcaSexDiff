@@ -1,21 +1,21 @@
-tissue	fcaver	loom
-all	stringent	https://cloud.flycellatlas.org/index.php/s/9TqWZ9e8se9RLdB
-antenna	stringent	https://cloud.flycellatlas.org/index.php/s/PcHBoL23CmxGNsb
-body	stringent	https://cloud.flycellatlas.org/index.php/s/yNGaMWYFaNkFSKY
-body_wall	stringent	https://cloud.flycellatlas.org/index.php/s/egxzns8NgtCjonB
-fat_body	stringent	https://cloud.flycellatlas.org/index.php/s/HApyeMyTeSkLTJS
-gut	stringent	https://cloud.flycellatlas.org/index.php/s/4AFW3Q8N6eG4qXG
-haltere	stringent	https://cloud.flycellatlas.org/index.php/s/pNe5feGDRXRK9K8
-head	stringent	https://cloud.flycellatlas.org/index.php/s/jtH5fGwLqtiSRSD
-heart	stringent	https://cloud.flycellatlas.org/index.php/s/XWBLMJRTrw26qjg
-leg	stringent	https://cloud.flycellatlas.org/index.php/s/ZX56j2CcMXnHXYc
-male_reproductive_glands	stringent	https://cloud.flycellatlas.org/index.php/s/rSgw2GGSqRkLHgM
-malpighian_tubule	stringent	https://cloud.flycellatlas.org/index.php/s/3HTntQjge85dNNC
-oenocyte	stringent	https://cloud.flycellatlas.org/index.php/s/CHBRf3Sjo4ZggQA
-proboscis_and_maxillary_palps	stringent	https://cloud.flycellatlas.org/index.php/s/6dooYZ72RC6Ktx7
-trachea	stringent	https://cloud.flycellatlas.org/index.php/s/TzkJDf3jqaJPHGS
-wing	stringent	https://cloud.flycellatlas.org/index.php/s/9xNnXyYPY6nyi7d
-ovary	relaxed	https://cloud.flycellatlas.org/index.php/s/HWZisNk8QCdDqXb
-testis	relaxed	https://cloud.flycellatlas.org/index.php/s/XAq3kCkfwEQotw7
-gonad	relaxed	
-test	relaxed	
+tissue	fcaver	resols	loom
+all	stringent		https://cloud.flycellatlas.org/index.php/s/9TqWZ9e8se9RLdB
+antenna	stringent		https://cloud.flycellatlas.org/index.php/s/PcHBoL23CmxGNsb
+body	stringent	L6.0	https://cloud.flycellatlas.org/index.php/s/yNGaMWYFaNkFSKY
+body_wall	stringent		https://cloud.flycellatlas.org/index.php/s/egxzns8NgtCjonB
+fat_body	stringent		https://cloud.flycellatlas.org/index.php/s/HApyeMyTeSkLTJS
+gut	stringent		https://cloud.flycellatlas.org/index.php/s/4AFW3Q8N6eG4qXG
+haltere	stringent		https://cloud.flycellatlas.org/index.php/s/pNe5feGDRXRK9K8
+head	stringent	L6.0	https://cloud.flycellatlas.org/index.php/s/jtH5fGwLqtiSRSD
+heart	stringent		https://cloud.flycellatlas.org/index.php/s/XWBLMJRTrw26qjg
+leg	stringent		https://cloud.flycellatlas.org/index.php/s/ZX56j2CcMXnHXYc
+male_reproductive_glands	stringent		https://cloud.flycellatlas.org/index.php/s/rSgw2GGSqRkLHgM
+malpighian_tubule	stringent		https://cloud.flycellatlas.org/index.php/s/3HTntQjge85dNNC
+oenocyte	stringent		https://cloud.flycellatlas.org/index.php/s/CHBRf3Sjo4ZggQA
+proboscis_and_maxillary_palps	stringent		https://cloud.flycellatlas.org/index.php/s/6dooYZ72RC6Ktx7
+trachea	stringent		https://cloud.flycellatlas.org/index.php/s/TzkJDf3jqaJPHGS
+wing	stringent		https://cloud.flycellatlas.org/index.php/s/9xNnXyYPY6nyi7d
+ovary	relaxed		https://cloud.flycellatlas.org/index.php/s/HWZisNk8QCdDqXb
+testis	relaxed		https://cloud.flycellatlas.org/index.php/s/XAq3kCkfwEQotw7
+gonad	relaxed		
+test	relaxed		

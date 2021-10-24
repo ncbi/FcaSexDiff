@@ -27,18 +27,25 @@ ordered_stats = [
     "log2fc_scanpy", "bias_scanpy",
 ]
 
-
 ordered_rows = [
     "chr", "symbol", "FBgn", "umi_tissue", "norm_tissue",
     "nz_umi_tissue", "nz_norm_tissue", "female_cls", "male_cls",
 ]
 
 ordered_cols = [
-    'cluster', 'major_annotation',
-    'cell_count_female', 'cell_count_male',
-    'sample_cell_count_female', 'sample_cell_count_male',
-    'log2_count_bias', 'count_bias_type', 'count_bias_padj',
-    'female_gene', 'male_gene', 'stats',
+    'cluster', 'annotations_female', 'annotations_male', 'annotations', 'major_annotation',
+    'tissue_count_female', 'tissue_count_male',
+    'cluster_count_female', 'cluster_count_male', 'cluster_type',
+    'cluster_frac_female', 'cluster_frac_male',
+    'tissue_rep_counts_female', 'tissue_rep_counts_male',
+    'cluster_rep_counts_female', 'cluster_rep_counts_male',
+    'cluster_rep_fracs_female', 'cluster_rep_fracs_male',
+    'cluster_rep_fracs_mean_female', 'cluster_rep_fracs_mean_male',
+    'cluster_rep_fracs_sd_female', 'cluster_rep_fracs_sd_male',
+    'pval_binom', 'pval_fisher', 'pval_wilcox', 'pval_ttest',
+    'padj_binom', 'padj_fisher', 'padj_wilcox', 'padj_ttest',
+    'count_bias_padj', 'log2_count_bias', 'count_bias_type',
+    'stats',
 ]
 
 if to_hide:
@@ -158,13 +165,13 @@ def export_excel(expr_bias, info, outfile):
         .reindex(ordered_stats, axis=1, level='stats')
     )
 
-    if to_hide:
-        # trim non-interesting genes
-        detailed = detailed.loc[
-            detailed.index.get_level_values('male_cls') +
-            detailed.index.get_level_values('female_cls') > 0,
-            :
-        ]
+    #if to_hide:
+    #    # trim non-interesting genes
+    #    detailed = detailed.loc[
+    #        detailed.index.get_level_values('male_cls') +
+    #        detailed.index.get_level_values('female_cls') > 0,
+    #        :
+    #    ]
 
     summary = detailed.loc[:, detailed.columns.get_level_values('stats') == 'bias']
 
