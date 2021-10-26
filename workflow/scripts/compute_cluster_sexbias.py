@@ -237,7 +237,8 @@ def merge_annotations(female, male):
                 "m": pd.DataFrame(json.loads(male)),
             },
             names = ["sex", "replicate"],
-            axis=1
+            axis=1,
+            sort=True,
         )
         .T
         .fillna(0)
@@ -279,6 +280,8 @@ def compute_sexbiased_counts_male_to_female(meta):
     )
     print(meta)
 
+
+
     def get_list(x):
         return [] if pd.isna(x) or (x == 0) else list(json.loads(x).values())
 
@@ -316,7 +319,11 @@ def compute_sexbiased_counts_male_to_female(meta):
                 })
             })
             .merge(replicate_counts, left_index=True, right_index=True)
-            .fillna(0)
+            .fillna({
+                "annotations" : "{}",
+                "cluster_rep_counts" : 0.0,
+                "tissue_rep_counts" : 0.0,
+            })
             .assign(cluster_rep_fracs = lambda df: (
                 df.cluster_rep_counts / df.tissue_rep_counts
             ))
@@ -371,8 +378,26 @@ def compute_sexbiased_counts_male_to_female(meta):
         names = ["sex", "stats"],
     )
     # it may happen that all replicates of a single sex are
-    # are not present
-    res = res.fillna(0)
+    # are not present, then fill up with na values as appropriate
+    na_values = pd.Series(dict(
+        annotations            = "{}",
+        tissue_count           = 0.0,
+        cluster_count          = 0.0,
+        cluster_frac           = 0.0,
+        cluster_rep_fracs      = "{}",
+        cluster_rep_counts     = "{}",
+        tissue_rep_counts      = "{}",
+        cluster_rep_fracs_mean = 0.0,
+        cluster_rep_fracs_sd   = 0.0,
+    ))
+    # fillna using a dataframe whose index matched with the
+    # columns (multi-index) of the dataframe being filled
+    res = res.fillna(pd.concat(
+        [na_values, na_values],
+        keys=["female", "male"],
+        names=["sex", "stats"]
+    ))
+    print(res)
 
     # move stats at the top of column index
     # and rearrange columns so that stats for the two sexes are together
@@ -388,7 +413,7 @@ def compute_sexbiased_counts_male_to_female(meta):
     )
     print(res[['annotations']])
 
-    
+
     # major annotation is one which has maximum sum from male and female cells
     res['major_annotation'] = res['annotations'].apply(get_major_annotation)
 
@@ -418,6 +443,9 @@ def compute_sexbiased_counts_male_to_female(meta):
         pval_wilcox = mannwhitneyu(female_cell_fracs, male_cell_fracs)[1]
         pval_ttest = ttest_ind(female_cell_fracs, male_cell_fracs,
                                equal_var=False)[1]
+        # t-test returns nan when standard deviation is zero
+        if np.isnan(pval_ttest):
+            pval_ttest = 1.0
 
         log2bias = np.log2(
             (PSEUDO_COUNT + np.mean(female_cell_fracs)) /
@@ -434,6 +462,7 @@ def compute_sexbiased_counts_male_to_female(meta):
 
     res = res.merge(res.apply(test_significance, axis=1),
                     left_index=True, right_index=True)
+    print(res)
 
     # pvals_corrected 2nd item in returned tuple from multipletests
     res['padj_binom'] = multipletests(res['pval_binom'], method='fdr_bh')[1]
@@ -441,12 +470,14 @@ def compute_sexbiased_counts_male_to_female(meta):
     res['padj_wilcox'] = multipletests(res['pval_wilcox'], method='fdr_bh')[1]
     res['padj_ttest'] = multipletests(res['pval_ttest'].fillna(1.0), method='fdr_bh')[1]
 
+    print(res)
+
     n_female_reps = len(female_meta.replicate.unique())
     n_male_reps = len(male_meta.replicate.unique())
 
     padj_use = (
         "padj_wilcox" if ((n_female_reps > 1) and (n_male_reps > 1)) else
-        "padj_binomial"
+        "padj_binom"
     )
 
     res = (
@@ -570,7 +601,7 @@ def do_all(exprfile, reosl, outfile):
 
     assert("cluster" not in adata.obs.columns)
     adata.obs = adata.obs.assign(cluster = lambda df: (
-        df[resol] if resol == "annotaion" else df[resol].apply(
+        df[resol] if resol == "annotation" else df[resol].apply(
             lambda x: f"{resol}C{x}"
         )
     ))

@@ -47,10 +47,14 @@ df <- (
   read_h5ad(expr_file)$obs
   %>% select(tSNE1, tSNE2, !!resol, sex)
   %>% filter(sex %in% c("female", "male"))
-  %>% mutate(cluster = .[,resol]) # rename column named by resol as cluster
-  %>% mutate(cluster = paste0(!!resol, "C", cluster))
-  %>% left_join(bias)
+  %>% mutate(cluster = .[,resol]) # copy column named by resol as cluster
 )
+
+if (resol != "annotation") {
+  df <- mutate(df, cluster = paste0(!!resol, "C", cluster))
+}
+
+df <- left_join(df, bias)
 
 head(df)
 

@@ -16,6 +16,7 @@ rule create_test_h5ad:
     "resources/expr_test_relaxed.csv",
   output:
     "imports/expr_h5ad/expr_test_relaxed.h5ad",
+    "hoards/scpopcorn/scpopcorn_test_relaxed.txt"
   script:
     "../scripts/create_test_expr_h5ad.py"
 

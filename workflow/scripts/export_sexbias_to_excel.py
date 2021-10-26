@@ -45,7 +45,7 @@ ordered_cols = [
     'pval_binom', 'pval_fisher', 'pval_wilcox', 'pval_ttest',
     'padj_binom', 'padj_fisher', 'padj_wilcox', 'padj_ttest',
     'count_bias_padj', 'log2_count_bias', 'count_bias_type',
-    'stats',
+    'female_gene', 'male_gene', 'stats',
 ]
 
 if to_hide:
@@ -86,6 +86,11 @@ def prepare_bias_table(adata):
         names = ['stats', 'cluster'],
         axis = 1
     )
+
+    for  col in adata.var.columns:
+        print(str(col))
+        print(adata.var[col].tolist())
+        print("\n")
 
     expr_bias.columns = pd.MultiIndex.from_frame(
         expr_bias.columns.to_frame(index=False)
@@ -173,9 +178,20 @@ def export_excel(expr_bias, info, outfile):
     #        :
     #    ]
 
-    summary = detailed.loc[:, detailed.columns.get_level_values('stats') == 'bias']
+    print(detailed)
 
-    d2x.write(summary, 'Summary')
+    summary = detailed.loc[
+        :,
+        detailed.columns.get_level_values('stats') == 'bias'
+    ]
+    summary = pd.DataFrame(
+        summary.values,
+        index = summary.index.get_level_values("symbol"),
+        columns = summary.columns.get_level_values("cluster"),
+    )
+    print(summary)
+
+    d2x.write(summary, 'Summary', write_index=True)
     d2x.write(detailed, 'Detailed')
     d2x.close()
 

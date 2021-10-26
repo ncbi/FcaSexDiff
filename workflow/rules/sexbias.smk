@@ -64,14 +64,13 @@ rule draw_tsne_count_bias:
 
 
 tasks = samples.explode("resols")
+specials = tasks.query("tissue in ['body', 'head']")
 
 append_final_output(
     expand(
       [
         "exports/sexdiff_h5ad/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}.h5ad",
         "exports/sexdiff_xlsx/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}.xlsx",
-        "exports/extras/scatter_plots/resol~{resol}/tsne_count_bias_{tissue}_{fcaver}_{resol}.pdf",
-        "exports/extras/scatter_plots/resol~{resol}/scatter_count_bias_{tissue}_{fcaver}_{resol}.pdf",
         "exports/extras/maplots/resol~{resol}/maplots_{tissue}_{fcaver}_{resol}.pdf",
       ],
       zip,
@@ -79,6 +78,16 @@ append_final_output(
       tissue=tasks["tissue"],
       fcaver=tasks["fcaver"],
       resol=tasks["resols"],
+    ) + expand(
+      [
+        "exports/extras/scatter_plots/resol~{resol}/tsne_count_bias_{tissue}_{fcaver}_{resol}.pdf",
+        "exports/extras/scatter_plots/resol~{resol}/scatter_count_bias_{tissue}_{fcaver}_{resol}.pdf",
+      ],
+      zip,
+      allow_missing=True,
+      tissue=specials["tissue"],
+      fcaver=specials["fcaver"],
+      resol=specials["resols"],
     ) + [
       "exports/extras/summary_sexbiased_genes_annotation.xlsx",
     ]

@@ -8,6 +8,7 @@ source("workflow/scripts/utils.R")
 
 infile <- snakemake@input[[1]]
 outfile <- snakemake@output[[1]]
+resol <- snakemake@wildcards[['resol']]
 
 print(infile)
 print(outfile)
@@ -30,6 +31,11 @@ bias <- (
                             ((pct_male > 0.5) & (count_bias_type == "Male")),
                             as.character(cluster), ''))
 )
+
+if (resol != "annotation") {
+  bias <- mutate(bias, label = substring(label, nchar(!!resol)+2))
+}
+
 
 head(bias)
 
@@ -68,7 +74,7 @@ inset <- (
 
 vp <- grid::viewport(width = 0.4, height = 0.4, x = 0.05, y = 1, just=c("left", "top"))
 
-pdf(outfile, height=6, width=6)
+pdf(outfile, height=11, width=10)
 print(main)
 print(inset, vp = vp)
 

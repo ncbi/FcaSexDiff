@@ -17,7 +17,7 @@ samples = (
 exclude = ['testis', 'ovary', 'male_reproductive_glands',
            'gonad',
            'all',
-           'test',
+#           'test',
 #           'antenna', 'head',
 #           'body',
            ]
@@ -32,7 +32,7 @@ samples = samples.query("tissue not in @exclude")
 #samples = samples.query("tissue in ['test']")
 #samples = samples.query("tissue in ['body', 'malpighian_tubule']")
 #samples = samples.query("tissue in ['body', 'head']")
-samples = samples.query("tissue in ['body']")
+#samples = samples.query("tissue in ['body']")
 
 
 final_output = []
