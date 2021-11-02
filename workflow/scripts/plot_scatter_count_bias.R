@@ -8,6 +8,7 @@ source("workflow/scripts/utils.R")
 
 infile <- snakemake@input[[1]]
 outfile <- snakemake@output[[1]]
+csvfile <- snakemake@output[[2]]
 resol <- snakemake@wildcards[['resol']]
 
 print(infile)
@@ -23,21 +24,27 @@ bias <- (
              log2_count_bias, count_bias_type)
   %>% mutate(pct_female = 100*cluster_rep_fracs_mean_female)
   %>% mutate(pct_male = 100*cluster_rep_fracs_mean_male)
-  %>% mutate(xmin = 100*(cluster_rep_fracs_mean_male - cluster_rep_fracs_sd_male))
-  %>% mutate(xmax = 100*(cluster_rep_fracs_mean_male + cluster_rep_fracs_sd_male))
-  %>% mutate(ymin = 100*(cluster_rep_fracs_mean_female - cluster_rep_fracs_sd_female))
-  %>% mutate(ymax = 100*(cluster_rep_fracs_mean_female + cluster_rep_fracs_sd_female))
-  %>% mutate(label = ifelse(((pct_female > 0.5) & (count_bias_type == "Female")) | 
-                            ((pct_male > 0.5) & (count_bias_type == "Male")),
+  %>% mutate(sd_female = 100*cluster_rep_fracs_sd_female)
+  %>% mutate(sd_male = 100*cluster_rep_fracs_sd_male)
+  %>% mutate(xmin = pct_male - sd_male)
+  %>% mutate(xmax = pct_male + sd_male)
+  %>% mutate(ymin = pct_female - sd_female)
+  %>% mutate(ymax = pct_female + sd_female)
+  %>% mutate(label = ifelse(((pct_female > 2) | (count_bias_type == "Female")) | 
+                            ((pct_male > 2) | (count_bias_type == "Male")),
                             as.character(cluster), ''))
 )
 
 if (resol != "annotation") {
   bias <- mutate(bias, label = substring(label, nchar(!!resol)+2))
 }
-
-
 head(bias)
+
+(
+  select(bias, cluster, major_annotation, count_bias_type, count_bias_padj,
+         pct_male, pct_female, sd_male, sd_female)
+  %>% write.csv(csvfile, row.names=F)
+)
 
 base <- (
     ggplot(bias, aes(y=pct_female, x=pct_male, color=count_bias_type))

@@ -1,12 +1,12 @@
 tissue	fcaver	resols	loom
 all	stringent		https://cloud.flycellatlas.org/index.php/s/9TqWZ9e8se9RLdB
 antenna	stringent		https://cloud.flycellatlas.org/index.php/s/PcHBoL23CmxGNsb
-body	stringent	L6.0	https://cloud.flycellatlas.org/index.php/s/yNGaMWYFaNkFSKY
+body	stringent	L0.4,L0.6,L0.8,L1.0,L1.2,L1.4,L1.6,L1.8,L2.0,L4.0,L6.0,L8.0,L10.0,L12.0,L14.0,L16.0,L18.0,L20.0,L25.0,L50.0	https://cloud.flycellatlas.org/index.php/s/yNGaMWYFaNkFSKY
 body_wall	stringent		https://cloud.flycellatlas.org/index.php/s/egxzns8NgtCjonB
 fat_body	stringent		https://cloud.flycellatlas.org/index.php/s/HApyeMyTeSkLTJS
 gut	stringent		https://cloud.flycellatlas.org/index.php/s/4AFW3Q8N6eG4qXG
 haltere	stringent		https://cloud.flycellatlas.org/index.php/s/pNe5feGDRXRK9K8
-head	stringent	L6.0	https://cloud.flycellatlas.org/index.php/s/jtH5fGwLqtiSRSD
+head	stringent	L0.4,L0.6,L0.8,L1.0,L1.2,L1.4,L1.6,L1.8,L2.0,L4.0,L6.0,L8.0,L10.0,L12.0,L14.0,L16.0,L18.0,L20.0,L25.0,L50.0	https://cloud.flycellatlas.org/index.php/s/jtH5fGwLqtiSRSD
 heart	stringent		https://cloud.flycellatlas.org/index.php/s/XWBLMJRTrw26qjg
 leg	stringent		https://cloud.flycellatlas.org/index.php/s/ZX56j2CcMXnHXYc
 male_reproductive_glands	stringent		https://cloud.flycellatlas.org/index.php/s/rSgw2GGSqRkLHgM

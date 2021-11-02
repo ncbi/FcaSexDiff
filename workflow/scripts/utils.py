@@ -16,9 +16,11 @@ class DF2Excel:
         self.writer = pd.ExcelWriter(excel_path, engine='xlsxwriter')
 
     def __del__(self):
+        self.writer.book.use_zip64()
         self.writer.save()
 
     def close(self):
+        self.writer.book.use_zip64()
         self.writer.save()
 
     def single_idx_df_to_excel(self, dataframe, sheet_name, write_header,

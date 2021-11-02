@@ -36,10 +36,17 @@ bias <- (
              log2_count_bias, count_bias_type)
   %>% mutate(pct_female = 100*cluster_rep_fracs_mean_female)
   %>% mutate(pct_male = 100*cluster_rep_fracs_mean_male)
-  %>% mutate(log2_count_bias = ifelse(log2_count_bias > 25, 25,
-                                      ifelse(log2_count_bias < -25, -25,
-                                             log2_count_bias)))
+  %>% mutate(bias_label = as.character(count_bias_type))
+  %>% mutate(bias_label = ifelse((bias_label == "Unbiased") & (log2_count_bias > 1),
+                                 "Female_NotSignificant", bias_label))
+  %>% mutate(bias_label = ifelse((bias_label == "Unbiased") & (log2_count_bias < -1),
+                                 "Male_NotSignificant", bias_label))
+  %>% mutate(cluster_label = ifelse(bias_label != "Unbiased", as.character(cluster), ''))
 )
+
+if (resol != "annotation") {
+  bias <- mutate(bias, cluster_label = substring(cluster_label, nchar(!!resol)+2))
+}
 
 head(bias)
 
@@ -58,6 +65,15 @@ df <- left_join(df, bias)
 
 head(df)
 
+centroids <- (
+  select(df, cluster, tSNE1, tSNE2, cluster_label, bias_label)
+  %>% group_by(cluster)
+  %>% summarize(tSNE1 = mean(tSNE1), tSNE2 = mean(tSNE2),
+                cluster_label = dplyr::first(cluster_label),
+                bias_label = dplyr::first(bias_label))
+)
+head(centroids)
+
 
 ff = df %>% filter(sex=='female')
 mf = df %>% filter(sex=='male')
@@ -66,26 +82,38 @@ mf = df %>% filter(sex=='male')
 clusters <-
 (
     ggplot(df, aes(tSNE1, tSNE2, color=cluster))
-    + ggrastr::rasterise(geom_point(size=1, alpha=1))
+    + ggrastr::rasterise(geom_point(size=.05, alpha=1))
     + theme_void()
     + labs(title='clusters')
     + theme(plot.title = element_text(color = "black", hjust=0.5))
     + coord_fixed()
+    + theme(legend.position = "none")
 )
 
 count_bias <-
 (
-    ggplot(df, aes(tSNE1, tSNE2, color=log2_count_bias))
-    + ggrastr::rasterise(geom_point(size=1, alpha=1))
+    ggplot(df, aes(tSNE1, tSNE2, color=bias_label))
+    + ggrastr::rasterise(geom_point(size=.05, alpha=1))
     + theme_void()
-    + scale_colour_gradient2(
-      low = "blue",
-      mid = "gray",
-      high = "red",
-    )
+    #+ scale_colour_gradient2(
+    #  low = "blue",
+    #  mid = "gray",
+    #  high = "red",
+    #)
     #+ sc_blue
-    + labs(title='count bias in clusters (normalized, replicate average, log2 scale)')
+    + geom_text_repel(data=centroids, aes(label=cluster_label), color="black",
+                      min.segment.length = 0, max.overlaps=Inf, size=4)
+    + scale_color_manual(values = c(
+        "Female" = "red",
+        "Female_NotSignificant" = "#BC544B", #"pink",
+        "Male" = "blue",
+        "Male_NotSignificant" = "#73C2FB", #maya
+        "Unbiased" = "gray"
+      ))
+    + labs(title='count bias in clusters')
     + theme(plot.title = element_text(color = "black", hjust=0.5))
+    + theme(legend.position = "bottom")
+    + guides(color = guide_legend(override.aes = list(size=8)))
     + coord_fixed()
 )
 
@@ -121,10 +149,10 @@ count_bias_male <-
 p = (
      clusters
      + count_bias
-     + count_bias_female
-     + count_bias_male
-     + plot_layout(ncol = 2, widths = 1, guides = 'collect')
+     #+ count_bias_female
+     #+ count_bias_male
+     + plot_layout(ncol = 2, widths = 1)
 )
 
-ggsave(out_file, p, width=20, height=15)
+ggsave(out_file, p, width=20, height=10)
 

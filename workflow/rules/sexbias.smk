@@ -49,6 +49,7 @@ rule plot_scatter_count_bias:
     "exports/sexdiff_h5ad/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}.h5ad",
   output:
     "exports/extras/scatter_plots/resol~{resol}/scatter_count_bias_{tissue}_{fcaver}_{resol}.pdf",
+    "exports/extras/scatter_plots/resol~{resol}/scatter_count_bias_{tissue}_{fcaver}_{resol}.csv",
   script:
     "../scripts/plot_scatter_count_bias.R"
 
@@ -64,7 +65,7 @@ rule draw_tsne_count_bias:
 
 
 tasks = samples.explode("resols")
-specials = tasks.query("tissue in ['body', 'head']")
+specials = tasks.query("tissue in ['body', 'head', 'test']")
 
 append_final_output(
     expand(
