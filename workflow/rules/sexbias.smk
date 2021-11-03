@@ -2,6 +2,7 @@
 rule compute_sexbias:
   input:
     "hoards/int_h5ad/int_{tissue}_{fcaver}.h5ad",
+    "resources/sex_specific_annotations.csv",
   output:
     "exports/sexdiff_h5ad/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}.h5ad",
   script:

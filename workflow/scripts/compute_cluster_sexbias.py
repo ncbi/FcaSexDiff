@@ -13,7 +13,7 @@ from scipy.stats import mannwhitneyu
 from scipy.stats import ttest_ind
 from collections import OrderedDict
 from statsmodels.stats.multitest import multipletests
-from numpyencoder import NumpyEncoder # Needed for numpy -> jason conversion
+from numpyencoder import NumpyEncoder # Needed for numpy -> json conversion
 
 PSEUDO_EXPR = 1e-9
 PSEUDO_COUNT = 1e-256
@@ -25,6 +25,7 @@ PADJ_CUTOFF_EXPR = 0.001
 LFC_CUTOFF_EXPR = 1
 
 exprfile = snakemake.input[0]
+sex_specific_annotations_file = snakemake.input[1]
 resol = snakemake.wildcards['resol']
 outfile = snakemake.output[0]
 
@@ -595,9 +596,31 @@ def get_sexbiased_expression_in_cluster(adata):
     return res.merge(res_de, left_index=True, right_index=True)
 
 
-def do_all(exprfile, reosl, outfile):
+def do_all(exprfile, sex_specific_annotations_file, reosl, outfile):
     adata = ad.read_h5ad(exprfile)
+
+    # first discard cells that have 'mix' sex
     adata = adata[adata.obs.sex.isin(["female", "male"])]
+
+    # next discard cells that have sex-specific annotations
+    # we get the information from sex_specific_annotations_file
+    # that has a column sex_specific. Ensure it does not conflict 
+    assert("sex_specific" not in adata.obs.columns)
+    annots = (
+        adata.obs[["annotation"]]
+        .merge(pd.read_csv(sex_specific_annotations_file), how = "left")
+        .drop_duplicates()
+    )
+    # we also make sure there is no annotation that is not
+    # known in sex_specific_annotations_file
+    print("\n".join(annots[annots.sex_specific.isna()]["annotation"].unique().tolist()))
+    assert(sum(annots.sex_specific.isna()) == 0)
+    to_remove = annots.annotation[annots.sex_specific != "no"].tolist()
+    # remove cells annotated as artefacts too
+    to_remove += ["artefact"]
+    # now do the actual filtering
+    adata = adata[~adata.obs.annotation.isin(to_remove)]
+    print(adata)
 
     assert("cluster" not in adata.obs.columns)
     adata.obs = adata.obs.assign(cluster = lambda df: (
@@ -668,5 +691,5 @@ def do_all(exprfile, reosl, outfile):
 
     adata.write_h5ad(outfile)
 
-do_all(exprfile, resol, outfile)
+do_all(exprfile, sex_specific_annotations_file, resol, outfile)
 

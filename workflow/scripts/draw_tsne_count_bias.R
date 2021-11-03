@@ -41,6 +41,11 @@ bias <- (
                                  "Female_NotSignificant", bias_label))
   %>% mutate(bias_label = ifelse((bias_label == "Unbiased") & (log2_count_bias < -1),
                                  "Male_NotSignificant", bias_label))
+  %>% mutate(bias_label = factor(bias_label,
+                                 levels = c("Male", "Male_NotSignificant", 
+                                            "Unbiased",
+                                            "Female_NotSignificant", "Female"),
+                                 ordered=TRUE))
   %>% mutate(cluster_label = ifelse(bias_label != "Unbiased", as.character(cluster), ''))
 )
 
@@ -52,18 +57,20 @@ head(bias)
 
 df <- (
   read_h5ad(expr_file)$obs
-  %>% select(tSNE1, tSNE2, !!resol, sex)
   %>% filter(sex %in% c("female", "male"))
   %>% mutate(cluster = .[,resol]) # copy column named by resol as cluster
+  %>% select(tSNE1, tSNE2, cluster, sex)
 )
 
 if (resol != "annotation") {
   df <- mutate(df, cluster = paste0(!!resol, "C", cluster))
 }
 
-df <- left_join(df, bias)
+
+df <- right_join(df, bias)
 
 head(df)
+
 
 centroids <- (
   select(df, cluster, tSNE1, tSNE2, cluster_label, bias_label)
@@ -109,7 +116,7 @@ count_bias <-
         "Male" = "blue",
         "Male_NotSignificant" = "#73C2FB", #maya
         "Unbiased" = "gray"
-      ))
+    ), drop = FALSE)
     + labs(title='count bias in clusters')
     + theme(plot.title = element_text(color = "black", hjust=0.5))
     + theme(legend.position = "bottom")

@@ -5,7 +5,8 @@ import pandas as pd
 #validate(config, schema="../schemas/config.schema.yaml")
 
 samples = (
-    pd.read_csv(config["samples"], sep="\t", dtype={"tissue": str, "fcaver":str})
+    pd.read_csv(config["samples"], sep="\t", comment = "#",
+                dtype={"tissue": str, "fcaver":str})
     .assign(resols = lambda df: df.resols.apply(
         lambda x: ["annotation"] + ([] if pd.isna(x) else x.split(','))
     ))
@@ -32,8 +33,9 @@ samples = samples.query("tissue not in @exclude")
 #samples = samples.query("tissue in ['test']")
 #samples = samples.query("tissue in ['body', 'malpighian_tubule']")
 #samples = samples.query("tissue in ['body', 'head', 'test']")
-samples = samples.query("tissue in ['body', 'head']")
-#samples = samples.query("tissue in ['body']")
+#samples = samples.query("tissue in ['body', 'head']")
+samples = samples.query("tissue in ['body']")
+#samples = samples.query("tissue in ['all']")
 
 
 final_output = []
