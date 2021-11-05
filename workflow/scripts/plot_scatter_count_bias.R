@@ -41,8 +41,9 @@ if (resol != "annotation") {
 head(bias)
 
 (
-  select(bias, cluster, major_annotation, count_bias_type, count_bias_padj,
-         pct_male, pct_female, sd_male, sd_female)
+  select(bias, cluster, major_annotation, count_bias_type,
+         log2_count_bias, count_bias_padj,
+         pct_female, pct_male, sd_female, sd_male)
   %>% write.csv(csvfile, row.names=F)
 )
 
