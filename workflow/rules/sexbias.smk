@@ -65,6 +65,27 @@ rule draw_tsne_count_bias:
     "../scripts/draw_tsne_count_bias.R"
 
 
+rule get_single_gene_expr:
+  input:
+    "hoards/int_h5ad/int_{tissue}_{fcaver}.h5ad",
+    "resources/sex_specific_annotations.csv",
+  output:
+    "exports/extras/violin_plots/resol~{resol}/{gene}_expr_{tissue}_{fcaver}_{resol}.tsv",
+  script:
+    "../scripts/get_single_gene_expr.py"
+
+
+
+rule get_violin_gene_expr:
+  input:
+    "exports/extras/violin_plots/resol~{resol}/{gene}_expr_{tissue}_{fcaver}_{resol}.tsv",
+  output:
+    "exports/extras/violin_plots/resol~{resol}/{gene}_violin_{tissue}_{fcaver}_{resol}.pdf",
+  script:
+    "../scripts/plot_violin_gene_expr.R"
+
+
+
 tasks = samples.explode("resols")
 specials = tasks.query("tissue in ['body', 'head', 'test']")
 
@@ -74,6 +95,7 @@ append_final_output(
         "exports/sexdiff_h5ad/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}.h5ad",
         "exports/sexdiff_xlsx/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}.xlsx",
         "exports/extras/maplots/resol~{resol}/maplots_{tissue}_{fcaver}_{resol}.pdf",
+        "exports/extras/violin_plots/resol~{resol}/AkhR_violin_{tissue}_{fcaver}_{resol}.pdf",
       ],
       zip,
       allow_missing=True,
