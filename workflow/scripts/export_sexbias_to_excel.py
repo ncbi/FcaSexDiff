@@ -33,17 +33,19 @@ ordered_rows = [
 ]
 
 ordered_cols = [
-    'cluster', 'annotations_female', 'annotations_male', 'annotations', 'major_annotation',
+    'cluster',
+#    'annotations_female', 'annotations_male',
+    'annotations', 'major_annotation',
     'tissue_count_female', 'tissue_count_male',
     'cluster_count_female', 'cluster_count_male', 'cluster_type',
-    'cluster_frac_female', 'cluster_frac_male',
+#    'cluster_frac_female', 'cluster_frac_male',
     'tissue_rep_counts_female', 'tissue_rep_counts_male',
     'cluster_rep_counts_female', 'cluster_rep_counts_male',
-    'cluster_rep_fracs_female', 'cluster_rep_fracs_male',
-    'cluster_rep_fracs_mean_female', 'cluster_rep_fracs_mean_male',
-    'cluster_rep_fracs_sd_female', 'cluster_rep_fracs_sd_male',
-    'pval_binom', 'pval_fisher', 'pval_wilcox', 'pval_ttest',
-    'padj_binom', 'padj_fisher', 'padj_wilcox', 'padj_ttest',
+#    'cluster_rep_fracs_female', 'cluster_rep_fracs_male',
+#    'cluster_rep_fracs_mean_female', 'cluster_rep_fracs_mean_male',
+#    'cluster_rep_fracs_sd_female', 'cluster_rep_fracs_sd_male',
+#    'pval_binom', 'pval_fisher', 'pval_wilcox', 'pval_ttest',
+#    'padj_binom', 'padj_fisher', 'padj_wilcox', 'padj_ttest',
     'count_bias_padj', 'log2_count_bias', 'count_bias_type',
     'female_gene', 'male_gene', 'stats',
 ]
@@ -180,18 +182,18 @@ def export_excel(expr_bias, info, outfile):
 
     print(detailed)
 
-    summary = detailed.loc[
-        :,
-        detailed.columns.get_level_values('stats') == 'bias'
-    ]
-    summary = pd.DataFrame(
-        summary.values,
-        index = summary.index.get_level_values("symbol"),
-        columns = summary.columns.get_level_values("cluster"),
-    )
-    print(summary)
+    #summary = detailed.loc[
+    #    :,
+    #    detailed.columns.get_level_values('stats') == 'bias'
+    #]
+    #summary = pd.DataFrame(
+    #    summary.values,
+    #    index = summary.index.get_level_values("symbol"),
+    #    columns = summary.columns.get_level_values("cluster"),
+    #)
+    #print(summary)
 
-    d2x.write(summary, 'Summary', write_index=True)
+    #d2x.write(summary, 'Summary', write_index=True)
     d2x.write(detailed, 'Detailed')
     d2x.close()
 

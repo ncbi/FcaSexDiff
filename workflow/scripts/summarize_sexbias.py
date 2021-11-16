@@ -3,7 +3,9 @@ import pandas as pd
 from os.path import basename
 
 paths = snakemake.input
-tissues = ['_'.join(basename(x).split("_")[1:-2]) for x in snakemake.input]
+tissues = ['_'.join(basename(x).split("_")[1:]) for x in snakemake.input]
+
+print(paths)
 
 summary = pd.concat(
     [
