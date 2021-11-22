@@ -238,7 +238,7 @@ def merge_annotations(female, male):
                 "f": pd.DataFrame(json.loads(female)),
                 "m": pd.DataFrame(json.loads(male)),
             },
-            names = ["sex", "replicate"],
+            names = ["sex", "sample"],
             axis=1,
             sort=True,
         )
@@ -264,7 +264,7 @@ def get_major_annotation(x):
         .fillna(0)
         .reset_index()
         .melt(id_vars=["annotation", "sex"],
-              var_name="replicate",
+              var_name="sample",
               value_name="cell_count")
         .groupby("annotation")
         .agg("sum")
@@ -274,10 +274,8 @@ def get_major_annotation(x):
 
 def compute_sexbiased_counts_male_to_female(meta):
     meta = (
-        meta[["sex", "cluster", "annotation", "sample_id"]]
-        .rename(columns={"annotation": "annotations", "sample_id": "replicate"})
-        #.assign(replicate = lambda df: df.replicate.str.split("__").str[0])
-        .assign(replicate = lambda df: df.replicate.str.split("__").str[1].str.split("_").str[0])
+        meta[["sex", "cluster", "annotation", "sample"]]
+        .rename(columns={"annotation": "annotations"})
         .set_index("sex")
     )
     print(meta)
@@ -292,9 +290,9 @@ def compute_sexbiased_counts_male_to_female(meta):
 
         # count totals cells in each replicate in tissue
         replicate_counts  = (
-            meta[["replicate"]]
+            meta[["sample"]]
             .assign(tissue_rep_counts=1)
-            .groupby(['replicate'])
+            .groupby(['sample'])
             .agg("sum")
         )
         print(replicate_counts)
@@ -313,7 +311,7 @@ def compute_sexbiased_counts_male_to_female(meta):
         # also keep count of annotated cell types in each cluster 
         res = (
             meta.assign(cluster_rep_counts=1)
-            .groupby(['replicate', 'cluster'])
+            .groupby(['sample', 'cluster'])
             .agg({
                 'cluster_rep_counts': 'sum',
                 'annotations': lambda x: json.dumps({
@@ -474,8 +472,8 @@ def compute_sexbiased_counts_male_to_female(meta):
 
     print(res)
 
-    n_female_reps = len(female_meta.replicate.unique())
-    n_male_reps = len(male_meta.replicate.unique())
+    n_female_reps = len(female_meta["sample"].unique())
+    n_male_reps = len(male_meta["sample"].unique())
 
     padj_use = (
         "padj_wilcox" if ((n_female_reps > 1) and (n_male_reps > 1)) else
@@ -498,8 +496,6 @@ def compute_sexbiased_counts_male_to_female(meta):
     print(res)
 
     return res
-
-
 
 def get_sexbiased_expression_in_cluster(adata):
 
@@ -596,12 +592,38 @@ def get_sexbiased_expression_in_cluster(adata):
 
     return res.merge(res_de, left_index=True, right_index=True)
 
+def get_tissue_stats(adata, name):
+    return pd.DataFrame(dict(
+        n_gene               = [adata.shape[1]],
+        n_cluster            = [len(adata.obs[resol].unique())],
+        tissue_count         = [adata.shape[0]],
+        tissue_count_female  = [adata.obs.query("sex == 'female'").shape[0]],
+        tissue_count_male    = [adata.obs.query("sex == 'male'").shape[0]],
+        tissue_rep_counts_female = [json.dumps(
+            adata.obs.query("sex == 'female'")["sample"].astype(str)
+            .value_counts(sort=False).sort_index().to_dict()
+        )],
+        tissue_rep_counts_male = [json.dumps(
+            adata.obs.query("sex == 'male'")["sample"].astype(str)
+            .value_counts(sort=False).sort_index().to_dict()
+        )],
+    ), index=[name])
+
 
 def do_all(exprfile, sex_specific_annotations_file, reosl, outfile):
     adata = ad.read_h5ad(exprfile)
 
+    cluster_digits = (
+        0 if resol == "annotation"
+          else np.ceil(np.log10(adata.obs[resol].max()+1)).astype(int)
+    )
+
+    print(cluster_digits)
+
     # first discard cells that have 'mix' sex
     adata = adata[adata.obs.sex.isin(["female", "male"])]
+
+    tissue_stats = get_tissue_stats(adata, "AllCells")
 
     if cell_filter in ["NoSexspecArtef", "NoSexspecArtefMuscle"]:
         # next discard cells that have sex-specific annotations
@@ -627,21 +649,33 @@ def do_all(exprfile, sex_specific_annotations_file, reosl, outfile):
         print(adata)
         print(adata.obs.annotation.unique().tolist())
 
+    if cell_filter != "AllCells":
+        tissue_stats_filtered = get_tissue_stats(adata, cell_filter)
+        tissue_stats = pd.concat([tissue_stats, tissue_stats_filtered])
+    print(tissue_stats)
+
+
     assert("cluster" not in adata.obs.columns)
-    adata.obs = adata.obs.assign(cluster = lambda df: (
-        df[resol] if resol == "annotation" else df[resol].apply(
-            lambda x: f"{resol}C{x}"
-        )
-    ))
+    meta_data = (
+        adata.obs
+        .assign(cluster = lambda df: (
+            df[resol] if resol == "annotation" else df[resol].apply(
+                lambda x: f"{resol}C{x:0>{cluster_digits}d}"
+            )
+        ))
+        # anndata saves samples as categorical variable but our code
+        # assumes that it is of string type, not categorical
+        .assign(sample = lambda df: df["sample"].astype(str))
+    )
     print(adata)
 
-    count_bias = compute_sexbiased_counts_male_to_female(adata.obs)
+    count_bias = compute_sexbiased_counts_male_to_female(meta_data)
     print(count_bias)
 
-    clusters = adata.obs.cluster.unique()
+    clusters = meta_data.cluster.unique()
     expr_bias = pd.concat(
         [
-            get_sexbiased_expression_in_cluster(adata[adata.obs.cluster == x])
+            get_sexbiased_expression_in_cluster(adata[meta_data.cluster == x])
             for x in clusters
         ],
         keys = clusters,
@@ -682,6 +716,7 @@ def do_all(exprfile, sex_specific_annotations_file, reosl, outfile):
 
     uns = OrderedDict()
     uns["info"] = info
+    uns["stats"] = tissue_stats
 
     layers["bias_scanpy"] = sparse.csr_matrix(scanpy_bias)
 

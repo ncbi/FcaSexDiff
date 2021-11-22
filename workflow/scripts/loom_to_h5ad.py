@@ -41,6 +41,15 @@ def loom_to_h5ad(loom_path, h5ad_path):
 
     cell_meta = pd.DataFrame.from_dict({x:ds.ca[x] for x in ds.ca.keys()})
 
+    # create a new cell_meta column representing short FCA sample id
+    assert("sample" not in cell_meta.columns)
+    # extract FCA2 from d54b72e4__FCA2_MaleFemale_Body
+    cell_meta["sample"] = (
+        cell_meta["sample_id"]
+        .str.split("__").str[1]
+        .str.split("_").str[0]
+    )
+
     # breakup 'Clusterings' column to individual resolution levels
     cell_meta = (
         cell_meta

@@ -36,10 +36,10 @@ ordered_cols = [
     'cluster',
 #    'annotations_female', 'annotations_male',
     'annotations', 'major_annotation',
-    'tissue_count_female', 'tissue_count_male',
+#    'tissue_count_female', 'tissue_count_male',
     'cluster_count_female', 'cluster_count_male', 'cluster_type',
 #    'cluster_frac_female', 'cluster_frac_male',
-    'tissue_rep_counts_female', 'tissue_rep_counts_male',
+#    'tissue_rep_counts_female', 'tissue_rep_counts_male',
     'cluster_rep_counts_female', 'cluster_rep_counts_male',
 #    'cluster_rep_fracs_female', 'cluster_rep_fracs_male',
 #    'cluster_rep_fracs_mean_female', 'cluster_rep_fracs_mean_male',
@@ -109,7 +109,7 @@ def prepare_bias_table(adata):
     return expr_bias
 
 
-def export_excel(expr_bias, info, outfile):
+def export_excel(expr_bias, info, tissue_stats, outfile):
 
     d2x = DF2Excel(outfile)
 
@@ -129,23 +129,22 @@ def export_excel(expr_bias, info, outfile):
         "Cluster level sexbias information both by counts and by gene expression",
         bold_format
     )
+    #readme.write(
+    #    2, 0,
+    #    "Sheet 'Summary' shows  (only for genes that are biased in atleast"
+    #    " one cluster)",
+    #    cell_format
+    #)
     readme.write(
         2, 0,
-        "Sheet 'Summary' shows for each gene G and cluster C if G is sex-biased"
-        " (Male/Female) in C (only for genes that are biased in atleast"
-        " one cluster)",
-        cell_format
-    )
-    readme.write(
-        3, 0,
-        "Sheet 'Detailed' shows details of average expression, log fold change,"
-        " pvalue etc. in addition (only for genes that are biased in atleast"
-        " one cluster, for all genes see h5ad file)",
+        "Sheet 'Detailed' shows for each gene G and cluster C if G is sex-biased"
+        " (Male/Female) in C and the details of average expression, log fold change,"
+        " pvalue etc.",
         cell_format
     )
     readme.write(
         4, 0,
-        "In both sheets the details about rows and columns are as given below.",
+        "The details about rows and columns are as given below.",
         cell_format
     )
     readme.write(6, 0, "Column information:", bold_format)
@@ -194,7 +193,13 @@ def export_excel(expr_bias, info, outfile):
     #print(summary)
 
     #d2x.write(summary, 'Summary', write_index=True)
+    print(tissue_stats)
+
+    tissue_stats.loc["comment", "tissue_rep_counts_female"] = "replicates"
+    tissue_stats.loc["comment", "tissue_rep_counts_male"] = "replicates"
+    tissue_stats.T.to_excel(d2x.writer, sheet_name='Detailed')
     d2x.write(detailed, 'Detailed')
+
     d2x.close()
 
 
@@ -202,5 +207,5 @@ def export_excel(expr_bias, info, outfile):
 
 adata = ad.read_h5ad(bias_file)
 bias = prepare_bias_table(adata)
-export_excel(bias, adata.uns["info"], outfile)
+export_excel(bias, adata.uns["info"], adata.uns["stats"], outfile)
 

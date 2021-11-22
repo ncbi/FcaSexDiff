@@ -4,16 +4,16 @@ rule compute_sexbias:
     "hoards/int_h5ad/int_{tissue}_{fcaver}.h5ad",
     "resources/sex_specific_annotations.csv",
   output:
-    "exports/sexdiff_h5ad_{cellfilt}/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.h5ad",
+    "exports/sexdiff/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.h5ad",
   script:
     "../scripts/compute_cluster_sexbias.py"
 
 
 rule export_excel:
   input:
-    "exports/sexdiff_h5ad_{cellfilt}/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.h5ad",
+    "exports/sexdiff/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.h5ad",
   output:
-    "exports/sexdiff_xlsx_{cellfilt}/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.xlsx",
+    "exports/sexdiff/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.xlsx",
   script:
     "../scripts/export_sexbias_to_excel.py"
 
@@ -22,7 +22,7 @@ rule summarize_sexbias:
   input:
     expand(
       expand(
-        "exports/sexdiff_h5ad_{cellfilt}/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.h5ad",
+        "exports/sexdiff/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.h5ad",
         zip,
         allow_missing=True,
         tissue=samples["tissue"],
@@ -39,19 +39,19 @@ rule summarize_sexbias:
 
 rule plot_ma_plots:
   input:
-    "exports/sexdiff_h5ad_{cellfilt}/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.h5ad",
+    "exports/sexdiff/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.h5ad",
   output:
-    "exports/extras/maplots_{cellfilt}/resol~{resol}/maplots_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
+    "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/maplots_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
   script:
     "../scripts/plot_ma_plots.R"
 
 
 rule plot_scatter_count_bias:
   input:
-    "exports/sexdiff_h5ad_{cellfilt}/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.h5ad",
+    "exports/sexdiff/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.h5ad",
   output:
-    "exports/extras/scatter_plots_{cellfilt}/resol~{resol}/scatter_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
-    "exports/extras/scatter_plots_{cellfilt}/resol~{resol}/scatter_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.csv",
+    "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/scatter_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
+    "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/scatter_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.csv",
   script:
     "../scripts/plot_scatter_count_bias.R"
 
@@ -59,9 +59,9 @@ rule plot_scatter_count_bias:
 rule draw_tsne_count_bias:
   input:
     "scraps/lognorm_h5ad/lognorm_{tissue}_{fcaver}.h5ad",
-    "exports/sexdiff_h5ad_{cellfilt}/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.h5ad",
+    "exports/sexdiff/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.h5ad",
   output:
-    "exports/extras/scatter_plots_{cellfilt}/resol~{resol}/tsne_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
+    "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/tsne_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
   script:
     "../scripts/draw_tsne_count_bias.R"
 
@@ -71,7 +71,7 @@ rule get_single_gene_expr:
     "hoards/int_h5ad/int_{tissue}_{fcaver}.h5ad",
     "resources/sex_specific_annotations.csv",
   output:
-    "exports/extras/violin_plots_{cellfilt}/resol~{resol}/{gene}_expr_{tissue}_{fcaver}_{resol}_{cellfilt}.tsv",
+    "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/{gene}_expr_{tissue}_{fcaver}_{resol}_{cellfilt}.tsv",
   script:
     "../scripts/get_single_gene_expr.py"
 
@@ -79,9 +79,9 @@ rule get_single_gene_expr:
 
 rule get_violin_gene_expr:
   input:
-    "exports/extras/violin_plots_{cellfilt}/resol~{resol}/{gene}_expr_{tissue}_{fcaver}_{resol}_{cellfilt}.tsv",
+    "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/{gene}_expr_{tissue}_{fcaver}_{resol}_{cellfilt}.tsv",
   output:
-    "exports/extras/violin_plots_{cellfilt}/resol~{resol}/{gene}_violin_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
+    "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/{gene}_violin_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
   script:
     "../scripts/plot_violin_gene_expr.R"
 
@@ -93,10 +93,10 @@ specials = tasks.query("tissue in ['body', 'head', 'test']")
 append_final_output(
     expand(
       [
-        "exports/sexdiff_h5ad_{cellfilt}/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.h5ad",
-        "exports/sexdiff_xlsx_{cellfilt}/resol~{resol}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.xlsx",
-        "exports/extras/maplots_{cellfilt}/resol~{resol}/maplots_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
-        "exports/extras/violin_plots_{cellfilt}/resol~{resol}/AkhR_violin_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
+        "exports/sexdiff/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.h5ad",
+        "exports/sexdiff/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.xlsx",
+        "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/maplots_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
+        "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/AkhR_violin_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
       ],
       zip,
       allow_missing=True,
@@ -106,8 +106,8 @@ append_final_output(
       cellfilt=tasks["cellfilts"],
     ) + expand(
       [
-        "exports/extras/scatter_plots_{cellfilt}/resol~{resol}/tsne_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
-        "exports/extras/scatter_plots_{cellfilt}/resol~{resol}/scatter_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
+        "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/tsne_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
+        "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/scatter_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
       ],
       zip,
       allow_missing=True,
