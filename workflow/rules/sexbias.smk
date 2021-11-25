@@ -1,7 +1,7 @@
 
 rule compute_sexbias:
   input:
-    "hoards/int_h5ad/int_{tissue}_{fcaver}.h5ad",
+    "scraps/lognorm_h5ad/lognorm_{tissue}_{fcaver}.h5ad",
     "resources/sex_specific_annotations.csv",
   output:
     "exports/sexdiff/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.h5ad",
@@ -68,7 +68,7 @@ rule draw_tsne_count_bias:
 
 rule get_single_gene_expr:
   input:
-    "hoards/int_h5ad/int_{tissue}_{fcaver}.h5ad",
+    "scraps/lognorm_h5ad/lognorm_{tissue}_{fcaver}.h5ad",
     "resources/sex_specific_annotations.csv",
   output:
     "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/{gene}_expr_{tissue}_{fcaver}_{resol}_{cellfilt}.tsv",
