@@ -59,6 +59,13 @@ def loom_to_h5ad(loom_path, h5ad_path):
         .drop(columns = ['Clusterings'])
     )
 
+    # change integer cluster number to formatted strings
+    for res_lab in resol['label']:
+        ndigit = np.ceil(np.log10(cell_meta[res_lab].max()+1)).astype(int)
+        cell_meta[res_lab] = cell_meta[res_lab].apply(
+            lambda x: f"{res_lab}C{x:0>{ndigit}d}"
+        )
+
     # breakup 'Embeddings_X, _Y' columns to individual embeddings
     cell_meta = (
         cell_meta

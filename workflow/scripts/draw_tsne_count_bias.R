@@ -37,19 +37,16 @@ bias <- (
   %>% mutate(pct_female = 100*cluster_rep_fracs_mean_female)
   %>% mutate(pct_male = 100*cluster_rep_fracs_mean_male)
   %>% mutate(bias_label = as.character(count_bias_type))
-  %>% mutate(bias_label = ifelse((bias_label == "Unbiased") & (log2_count_bias > 1),
-                                 "Female_NotSignificant", bias_label))
-  %>% mutate(bias_label = ifelse((bias_label == "Unbiased") & (log2_count_bias < -1),
-                                 "Male_NotSignificant", bias_label))
   %>% mutate(bias_label = factor(bias_label,
-                                 levels = c("Male", "Male_NotSignificant", 
+                                 levels = c("MaleOnly", "MaleSignificant", "MaleNonsignificant", 
                                             "Unbiased",
-                                            "Female_NotSignificant", "Female"),
+                                            "FemaleNonsignificant", "FemaleSignificant",  "FemaleOnly"),
                                  ordered=TRUE))
   %>% mutate(cluster_label = ifelse(bias_label != "Unbiased", as.character(cluster), ''))
 )
 
 if (resol != "annotation") {
+  # label clusters without the prefix showing cluster resolution
   bias <- mutate(bias, cluster_label = substring(cluster_label, nchar(!!resol)+2))
 }
 
@@ -62,10 +59,7 @@ df <- (
   %>% select(tSNE1, tSNE2, cluster, sex)
 )
 
-if (resol != "annotation") {
-  df <- mutate(df, cluster = paste0(!!resol, "C", cluster))
-}
-
+head(df)
 
 df <- right_join(df, bias)
 
@@ -111,10 +105,12 @@ count_bias <-
     + geom_text_repel(data=centroids, aes(label=cluster_label), color="black",
                       min.segment.length = 0, max.overlaps=Inf, size=4)
     + scale_color_manual(values = c(
-        "Female" = "red",
-        "Female_NotSignificant" = "#BC544B", #"pink",
-        "Male" = "blue",
-        "Male_NotSignificant" = "#73C2FB", #maya
+        "FemaleOnly" = "red",
+        "FemaleSignificant" = "red",
+        "FemaleNonsignificant" = "#BC544B", #"pink",
+        "MaleOnly" = "blue",
+        "MaleSignificant" = "blue",
+        "MaleNonsignificant" = "#73C2FB", #maya
         "Unbiased" = "gray"
     ), drop = FALSE)
     + labs(title='count bias in clusters')

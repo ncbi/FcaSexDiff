@@ -259,6 +259,7 @@ def get_major_annotation(x):
         pd.concat(
             {k: pd.DataFrame(v).T for k, v in json.loads(x).items()},
             names = ["annotation", "sex"],
+            sort=True,
             axis=0
         )
         .fillna(0)
@@ -376,6 +377,7 @@ def compute_sexbiased_counts_male_to_female(meta):
         axis = 1,
         keys = ["female", "male"],
         names = ["sex", "stats"],
+        sort = True,
     )
     # it may happen that all replicates of a single sex are
     # are not present, then fill up with na values as appropriate
@@ -480,20 +482,28 @@ def compute_sexbiased_counts_male_to_female(meta):
         "padj_binom"
     )
 
+    def encode_count_bias(log2bias, padj, cluster_type):
+        return (
+            "FemaleOnly" if cluster_type == "female_only" else
+            "MaleOnly" if cluster_type == "male_only" else
+            "FemaleSignificant" if ((log2bias > LFC_CUTOFF_COUNT) &
+                                    (padj < PADJ_CUTOFF_COUNT)) else
+            "FemaleNonsignificant" if log2bias > LFC_CUTOFF_COUNT else
+            "MaleSignificant" if ((log2bias < -LFC_CUTOFF_COUNT) &
+                                  (padj < PADJ_CUTOFF_COUNT)) else
+            "MaleNonsignificant" if log2bias < -LFC_CUTOFF_COUNT else
+            "Unbiased"
+        )
+
+    print(res[["log2_count_bias", padj_use, "cluster_type"]])
+
     res = (
         res.assign(count_bias_padj = lambda df: df[padj_use]) #.apply(pvalstr))
-        .assign(count_bias_type = lambda df: df.apply(
-            lambda x: "Female" if (((x['count_bias_padj'] < PADJ_CUTOFF_COUNT) &
-                                    (x["log2_count_bias"] > LFC_CUTOFF_COUNT)) |
-                                   (x["cluster_type"] == "female_only")) else
-                      "Male"  if (((x['count_bias_padj'] < PADJ_CUTOFF_COUNT) &
-                                    (x["log2_count_bias"] < -LFC_CUTOFF_COUNT)) |
-                                   (x["cluster_type"] == "male_only")) else
-                      "Unbiased",
-            axis=1
-        ))
+        .assign(count_bias_type = lambda df: df.apply(lambda x: encode_count_bias(
+            x["log2_count_bias"], x["count_bias_padj"], x["cluster_type"]
+        ), axis=1))
     )
-    print(res)
+    print(res[["count_bias_type", "log2_count_bias", "count_bias_padj", "cluster_type"]])
 
     return res
 
@@ -613,13 +623,6 @@ def get_tissue_stats(adata, name):
 def do_all(exprfile, sex_specific_annotations_file, reosl, outfile):
     adata = ad.read_h5ad(exprfile)
 
-    cluster_digits = (
-        0 if resol == "annotation"
-          else np.ceil(np.log10(adata.obs[resol].max()+1)).astype(int)
-    )
-
-    print(cluster_digits)
-
     # first discard cells that have 'mix' sex
     adata = adata[adata.obs.sex.isin(["female", "male"])]
 
@@ -658,11 +661,7 @@ def do_all(exprfile, sex_specific_annotations_file, reosl, outfile):
     assert("cluster" not in adata.obs.columns)
     meta_data = (
         adata.obs
-        .assign(cluster = lambda df: (
-            df[resol] if resol == "annotation" else df[resol].apply(
-                lambda x: f"{resol}C{x:0>{cluster_digits}d}"
-            )
-        ))
+        .assign(cluster = lambda df: df[resol])
         # anndata saves samples as categorical variable but our code
         # assumes that it is of string type, not categorical
         .assign(sample = lambda df: df["sample"].astype(str))

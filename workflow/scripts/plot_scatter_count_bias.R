@@ -30,8 +30,7 @@ bias <- (
   %>% mutate(xmax = pct_male + sd_male)
   %>% mutate(ymin = pct_female - sd_female)
   %>% mutate(ymax = pct_female + sd_female)
-  %>% mutate(label = ifelse(((pct_female > 2) | (count_bias_type == "Female")) | 
-                            ((pct_male > 2) | (count_bias_type == "Male")),
+  %>% mutate(label = ifelse(count_bias_type != "Unbiased",
                             as.character(cluster), ''))
 )
 
@@ -56,7 +55,15 @@ base <- (
     + geom_text_repel(aes(label=label), min.segment.length = 0, max.overlaps=Inf)
     + geom_point(size=1)
     + theme_few()
-    + scale_color_manual(values=c("Female"="red", "Male"="blue", "Unbiased"="black"))
+    + scale_color_manual(values = c(
+        "FemaleOnly" = "red",
+        "FemaleSignificant" = "red",
+        "FemaleNonsignificant" = "#BC544B", #"pink",
+        "MaleOnly" = "blue",
+        "MaleSignificant" = "blue",
+        "MaleNonsignificant" = "#73C2FB", #maya
+        "Unbiased" = "gray"
+    ), drop = FALSE)
 )
 
 main <- (
