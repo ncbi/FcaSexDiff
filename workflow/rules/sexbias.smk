@@ -52,6 +52,7 @@ rule plot_scatter_count_bias:
   output:
     "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/scatter_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
     "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/scatter_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.csv",
+    "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/scatter_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.rds",
   script:
     "../scripts/plot_scatter_count_bias.R"
 
@@ -62,6 +63,7 @@ rule draw_tsne_count_bias:
     "exports/sexdiff/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.h5ad",
   output:
     "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/tsne_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
+    "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/tsne_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.rds",
   script:
     "../scripts/draw_tsne_count_bias.R"
 

@@ -20,6 +20,7 @@ BLUE = "#1f45f7"
 expr_file = snakemake@input[[1]]
 bias_file = snakemake@input[[2]]
 out_file = snakemake@output[[1]]
+rds_file = snakemake@output[[2]]
 
 resol = snakemake@wildcards[['resol']]
 
@@ -158,4 +159,5 @@ p = (
 )
 
 ggsave(out_file, p, width=20, height=10)
+saveRDS(count_bias, rds_file)
 

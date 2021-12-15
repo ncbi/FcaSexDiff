@@ -47,7 +47,7 @@ def process(tissue):
     meta_data = (
         adata.obs[["sex", "annotation", "batch", "L6.0", 'n_counts', 'n_genes']]
         .rename(columns={"n_counts":"n_umi"})
-        .assign(cluster = lambda df: df["L6.0"].apply(lambda x: f"L6.0C{int(x):0>3d}"))
+        .assign(cluster = lambda df: df["L6.0"]) #.apply(lambda x: f"L6.0C{int(x):0>3d}"))
         .assign(batch = lambda df: df.batch.apply(lambda x: f"R{int(x):0>2d}"))
     )
     print(meta_data)
@@ -141,6 +141,14 @@ def process(tissue):
     print(df)
     df = df.reorder_levels([0,2,1], axis=1).sort_index(axis=1)
     print(df)
+
+    tosave = df.loc[:,((df.columns.get_level_values("batch") == "RAll") &
+                      (df.columns.get_level_values("stats") == "rp_avg"))]
+    print(tosave)
+    tosave.columns = [f"rp_avg_{x}" for x in tosave.columns.get_level_values("sex")]
+    print(tosave)
+    tosave.to_csv(f"ribosomal_proteins_{tissue}_clusterwise.csv")
+
     df.index = pd.MultiIndex.from_frame(
         df.index.to_frame(index=False)
         .merge(annot)

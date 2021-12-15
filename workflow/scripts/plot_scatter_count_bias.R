@@ -9,6 +9,7 @@ source("workflow/scripts/utils.R")
 infile <- snakemake@input[[1]]
 outfile <- snakemake@output[[1]]
 csvfile <- snakemake@output[[2]]
+rdsfile <- snakemake@output[[3]]
 resol <- snakemake@wildcards[['resol']]
 
 print(infile)
@@ -54,6 +55,7 @@ base <- (
     + geom_errorbarh(aes(xmin=xmin, xmax=xmax), height=0.5, size=0.5, color="gray")
     + geom_text_repel(aes(label=label), min.segment.length = 0, max.overlaps=Inf)
     + geom_point(size=1)
+    + coord_fixed()
     + theme_few()
     + scale_color_manual(values = c(
         "FemaleOnly" = "red",
@@ -91,5 +93,7 @@ vp <- grid::viewport(width = 0.4, height = 0.4, x = 0.05, y = 1, just=c("left", 
 
 pdf(outfile, height=11, width=10)
 print(main)
-print(inset, vp = vp)
+#print(inset, vp = vp)
+dev.off()
 
+saveRDS(main, rdsfile)
