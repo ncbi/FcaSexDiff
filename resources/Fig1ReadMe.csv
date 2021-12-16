@@ -1,0 +1,27 @@
+,,
+"This spread sheet explains the data that went behind the scatter plots in Fig1",,
+,,
+,,
+,,
+,,
+Column,Example,Details
+cluster,L6.0C25,"The cluster name, in this case cluster number 0 at Leiden resolution 6.0"
+major_annotation,"adult ventral nervous system","FCA anatation of majority of the cells in this cluster"
+count_bias_padj,0.302722911536946,"Adjusted pvalue from the Wilcoxon test on the cell counts (same as in the sexdiff spreadsheet)"
+log2_count_bias,-0.259468999082824,"Log of the ratio of percentage of cells female divided by male (same as in the sexdiff spreadsheet)"
+count_bias_type,Unbiased,"Computed count bias levels that gives the color in panel on cluster bias"
+female_gene,65,"Number of genes female biased in this cluster"
+male_gene,11,"Number of genes male biased in this cluster"
+cluster_label,25,"Short cluster label (integer cluster number)"
+pct_cells_female,1.58474416077324,"Percentage of cell in cluster that are female (replicate average), Y-axis in panel on cluster bias"
+pct_cells_male,1.89699904342573,"Percentage of cell in cluster that are male (replicate average), X-axis in panel on cluster bias"
+sd_cells_female,0.659859045828626,"Standard deviation of percentage of cells that are female across replicates, height of error-bars in panel on cluster bias "
+sd_cells_male,0.63074116472471,"Standard deviation of percentage of cells that are male across replicates, width of error-bars in panel on cluster bias "
+,,
+pct_genes_female,0.425754896181306,"Percentage of genes expressed in the dataset that are female biased in this cluster, Y axis in panel on expression bias"
+pct_genes_male,0.0720508285845287,"Percentage of genes expressed in the dataset that are male biased in this cluster, X axis in panel on expression bias"
+expr_bias_type,FemaleBiased,"Expression bias as we determined and gives the color in panel on expression bias"
+,,
+rp_avg_female,0.51839954,"Average expression of ribosomal protein encoding genes in female cells, X axis in panel on RP expression bias"
+rp_avg_male,0.2413121,"Average expression of ribosomal protein encoding genes in male cells, Y axis in panel on RP expression bias"
+rp_bias_type,FemaleBiased,"Ribisomal xpression bias as we determined and gives the color in panel on RP expression bias"

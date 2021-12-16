@@ -2,12 +2,25 @@ import anndata as ad
 import pandas as pd
 import sys
 
-writer = pd.ExcelWriter('ribosomal_proteins_L6.0_clusterwise.xlsx', engine='xlsxwriter')
+infile = snakemake.input[0]
+sex_specific_annotations_file = snakemake.input[1]
+outfile = snakemake.output[0]
+cell_wise_file = snakemake.output[1]
+cluster_wise_file = snakemake.output[2]
+tissue = snakemake.wildcards.tissue
+resol = snakemake.wildcards.resol
+cell_filter = snakemake.wildcards.cellfilt
 
-sex_specific_annotations_file = "resources/sex_specific_annotations.csv"
+print(infile)
+print(sex_specific_annotations_file)
+print(outfile)
+print(cell_wise_file)
+print(cluster_wise_file)
+print(tissue)
+print(resol)
+print(cell_filter)
 
-def process(tissue):
-    infile = f"imports/expr_h5ad/expr_{tissue}_stringent.h5ad"
+def export_rp_expression(infile, outfile, cell_wise_file, cluster_wise_file):
 
     adata = ad.read_h5ad(infile)
 
@@ -79,7 +92,7 @@ def process(tissue):
 
     print(meta_data)
 
-    meta_data.to_csv(f"ribosomal_proteins_{tissue}.csv")
+    meta_data.to_csv(cell_wise_file)
 
     male = (
         meta_data.query("sex == 'male'")
@@ -147,7 +160,7 @@ def process(tissue):
     print(tosave)
     tosave.columns = [f"rp_avg_{x}" for x in tosave.columns.get_level_values("sex")]
     print(tosave)
-    tosave.to_csv(f"ribosomal_proteins_{tissue}_clusterwise.csv")
+    tosave.to_csv(cluster_wise_file)
 
     df.index = pd.MultiIndex.from_frame(
         df.index.to_frame(index=False)
@@ -155,10 +168,7 @@ def process(tissue):
     )
     print(df)
 
-    df.to_excel(writer, sheet_name=tissue)
+    df.to_hdf(outfile, key=tissue)
 
 
-process("body")
-process("head")
-
-writer.save()
+export_rp_expression(infile, outfile, cell_wise_file, cluster_wise_file)
