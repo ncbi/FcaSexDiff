@@ -4,6 +4,7 @@ import sys
 
 infile = snakemake.input[0]
 sex_specific_annotations_file = snakemake.input[1]
+rp_gene_list_file = snakemake.input[2]
 outfile = snakemake.output[0]
 cell_wise_file = snakemake.output[1]
 cluster_wise_file = snakemake.output[2]
@@ -13,6 +14,7 @@ cell_filter = snakemake.wildcards.cellfilt
 
 print(infile)
 print(sex_specific_annotations_file)
+print(rp_gene_list_file)
 print(outfile)
 print(cell_wise_file)
 print(cluster_wise_file)
@@ -24,8 +26,8 @@ def export_rp_expression(infile, outfile, cell_wise_file, cluster_wise_file):
 
     adata = ad.read_h5ad(infile)
 
-    adata = adata[:, adata.var_names.str.startswith('RpS') |
-                     adata.var_names.str.startswith('RpL')]
+    rp_genes = pd.read_csv(rp_gene_list_file, header=None)[0].tolist()
+    adata = adata[:, adata.var_names.isin(rp_genes)]
 
     print(", ".join(adata.var_names.tolist()))
 
