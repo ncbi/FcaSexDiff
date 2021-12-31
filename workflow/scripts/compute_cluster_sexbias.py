@@ -21,6 +21,9 @@ PSEUDO_COUNT = 1e-256
 PADJ_CUTOFF_COUNT = 0.05
 LFC_CUTOFF_COUNT = 1
 
+PADJ_CUTOFF_MARKER = 0.001
+LFC_CUTOFF_MARKER = 1
+
 PADJ_CUTOFF_EXPR = 0.001
 LFC_CUTOFF_EXPR = 1
 
@@ -173,6 +176,9 @@ info = dict(
       "Average expression of gene in all female cells in cluster where it"
       " expressed"
   ),
+  frac_all = (
+      "Fraction of cells where gene is expressed (atleast one UMI)"
+  ),
   frac_female = (
       "Fraction of female cells where gene is expressed (atleast one UMI)"
   ),
@@ -200,6 +206,22 @@ info = dict(
       f"gene is female- or male-biased based on padj < {PADJ_CUTOFF_EXPR}"
       f" and log2fc_scanpy > {LFC_CUTOFF_EXPR} or < -{LFC_CUTOFF_EXPR}"
       f" ({2**LFC_CUTOFF_EXPR}-fold change)"
+  ),
+  marker_log2fc = (
+      "Log2 of fold change of average expression in favor of cells"
+      " in the cluster against rest of the cells"
+  ),
+  marker_padj = (
+      "BH corrected pvalue from Wilcoxon test for cluster cells vs rest cells"
+      " expression as computed by scanpy.tl.rank_genes_groups"
+  ),
+  marker_score = (
+      "Marker score computed by scanpy.tl.rank_genes_groups on clusters"
+  ),
+  is_marker = (
+      f"Gene is cluster marker based on marker_padj < {PADJ_CUTOFF_MARKER}"
+      f" and marker_log2fc > {LFC_CUTOFF_MARKER}"
+      f" ({2**LFC_CUTOFF_MARKER}-fold change)"
   ),
   chr = (
       "Chromosome where gene is located"
@@ -602,6 +624,70 @@ def get_sexbiased_expression_in_cluster(adata):
 
     return res.merge(res_de, left_index=True, right_index=True)
 
+
+def find_markers(adata, groupby):
+
+    # use normalized expression all through
+    error = False
+    marker_info = pd.DataFrame()
+    top_markers = {}
+
+    try:
+        sc.tl.rank_genes_groups(
+            adata, groupby, groups = "all", reference = "rest",
+            pts = True, method = 'wilcoxon', key_added = "marker_wilcoxon"
+        )
+    except AttributeError as e:
+        print('\tSample doesn\'t contain one group')
+        print(e)
+        error = True
+    except IndexError:
+        print('\tNot enough cells in one group')
+        error = True
+    except ZeroDivisionError as e:
+        print('\tZero division!')
+        print(e)
+        error = True
+    except ValueError as e:
+        print('\tSample doesn\'t contain one group')
+        print(e)
+        error = True
+    if not error:
+        frames = []
+        clusters = adata.obs[groupby].unique()
+        for cls in clusters:
+            tmp_frame = pd.DataFrame({
+                # t is a rec.array which can be indexed by col name
+                col : [t[cls] for t in adata.uns['marker_wilcoxon'][rec]]
+                for col,rec in [
+                    ('symbol','names'),
+                    ('marker_log2fc', 'logfoldchanges'),
+                    ('marker_pval', 'pvals'),
+                    ('marker_padj', 'pvals_adj'),
+                    ('marker_score', 'scores'),
+                ]
+            }).set_index('symbol')
+            # scanpy already arrange the genes as per descending marker scores
+            top_markers[cls] = ','.join(tmp_frame.head(10).index)
+            frames.append(tmp_frame)
+
+        marker_info = pd.concat(frames, axis=1, keys = clusters, names =
+                            ['cluster', 'stats'])
+        marker_info.columns = marker_info.columns.swaplevel()
+
+        print(marker_info)
+        # rows in pts are in different order of symbols, handle separately
+        pts = pd.DataFrame(adata.uns['marker_wilcoxon']['pts'])
+        pts = pd.concat([pts], axis=1, keys=["frac_all"], names=["stats", "cluster"])
+
+        marker_info = (
+            pd.concat([marker_info, pts], axis=1)
+            .sort_index(1)
+        )
+        print(marker_info)
+
+    return top_markers, marker_info
+
 def get_tissue_stats(adata, name):
     return pd.DataFrame(dict(
         n_gene               = [adata.shape[1]],
@@ -620,8 +706,14 @@ def get_tissue_stats(adata, name):
     ), index=[name])
 
 
-def do_all(exprfile, sex_specific_annotations_file, reosl, outfile):
+def do_all(exprfile, sex_specific_annotations_file, resol, outfile):
     adata = ad.read_h5ad(exprfile)
+
+    # ideally we should call find_markers after filtering the cells.
+    # however scanpy gives ZeroDivisionError, calling here does not give
+    top_markers, marker_info = find_markers(adata, resol)
+    print(top_markers)
+    print(marker_info)
 
     # first discard cells that have 'mix' sex
     adata = adata[adata.obs.sex.isin(["female", "male"])]
@@ -668,6 +760,7 @@ def do_all(exprfile, sex_specific_annotations_file, reosl, outfile):
     )
     print(adata)
 
+
     count_bias = compute_sexbiased_counts_male_to_female(meta_data)
     print(count_bias)
 
@@ -697,6 +790,16 @@ def do_all(exprfile, sex_specific_annotations_file, reosl, outfile):
     print(scanpy_bias)
 
 
+
+    # make sure that the columns in marker_info are in cluster order
+    marker_info = marker_info.reindex(clusters, axis=1, level='cluster')
+
+    is_marker = (
+        (marker_info['marker_padj'] < PADJ_CUTOFF_MARKER) &
+        (marker_info['marker_log2fc'] > LFC_CUTOFF_MARKER)
+    )
+
+
     gene_meta = (
         adata.var.loc[gene_bias.index, :]
         .assign(female_cls = (gene_bias > 0).sum(axis=1))
@@ -705,6 +808,7 @@ def do_all(exprfile, sex_specific_annotations_file, reosl, outfile):
 
     cluster_meta = (
         count_bias.loc[gene_bias.columns, :]
+        .assign(top_markers = pd.Series(top_markers))
         .assign(female_gene = (gene_bias > 0).sum(axis=0))
         .assign(male_gene = (gene_bias < 0).sum(axis=0))
     )
@@ -713,11 +817,15 @@ def do_all(exprfile, sex_specific_annotations_file, reosl, outfile):
     for stat in expr_bias.columns.get_level_values("stats").unique():
         layers[stat] = expr_bias[stat].values
 
+    layers["bias_scanpy"] = sparse.csr_matrix(scanpy_bias)
+    layers["is_marker"] = sparse.csr_matrix(is_marker.astype(int))
+
+    for stat in marker_info.columns.get_level_values("stats").unique():
+        layers[stat] = marker_info[stat].values
+
     uns = OrderedDict()
     uns["info"] = info
     uns["stats"] = tissue_stats
-
-    layers["bias_scanpy"] = sparse.csr_matrix(scanpy_bias)
 
     adata = ad.AnnData(
         sparse.csr_matrix(gene_bias),

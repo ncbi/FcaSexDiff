@@ -26,9 +26,9 @@ include: "rules/common.smk"
 #include: "rules/prepare_expression_h5ad.smk"
 ##include: "rules/run_scpopcorn.smk"
 ##include: "rules/integrate_scpopcorn_results.smk"
-#include: "rules/sexbias.smk"
+include: "rules/sexbias.smk"
 ##include: "rules/markers.smk"
-include: "rules/extract_ribosomal_expr.smk"
+#include: "rules/extract_ribosomal_expr.smk"
 
 
 print(get_final_output())

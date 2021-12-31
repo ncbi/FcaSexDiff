@@ -22,9 +22,11 @@ print(to_hide)
 ordered_stats = [
     "avg_all", "avg_female", "avg_male",
     "avg_nz_female", "avg_nz_male",
-    "frac_female", "frac_male",
+    "frac_all", "frac_female", "frac_male",
     "padj", "log2fc", "bias",
     "log2fc_scanpy", "bias_scanpy",
+    #"marker_padj", "marker_log2fc", "is_marker",
+    "marker_score",
 ]
 
 ordered_rows = [
@@ -33,7 +35,7 @@ ordered_rows = [
 ]
 
 ordered_cols = [
-    'cluster',
+    'cluster', 'top_markers',
 #    'annotations_female', 'annotations_male',
     'annotations', 'major_annotation',
 #    'tissue_count_female', 'tissue_count_male',
@@ -47,7 +49,8 @@ ordered_cols = [
 #    'pval_binom', 'pval_fisher', 'pval_wilcox', 'pval_ttest',
 #    'padj_binom', 'padj_fisher', 'padj_wilcox', 'padj_ttest',
     'count_bias_padj', 'log2_count_bias', 'count_bias_type',
-    'female_gene', 'male_gene', 'stats',
+    'female_gene', 'male_gene',
+    'stats',
 ]
 
 if to_hide:
@@ -58,7 +61,7 @@ if to_hide:
     ordered_cols = list(filter(criteria, ordered_cols))
 
 
-def get_stats_frame(adata, layer = None, is_bias = False):
+def get_stats_frame(adata, layer = None, is_bias = False, is_marker = False):
     tmp = adata.layers[layer] if layer else adata.X
     if is_bias:
         tmp = tmp.todense()
@@ -66,6 +69,11 @@ def get_stats_frame(adata, layer = None, is_bias = False):
         dat[tmp > 0] = "Female"
         dat[tmp < 0] = "Male"
         dat[tmp == 0] = ""
+    elif is_marker:
+        tmp = tmp.todense()
+        dat = tmp.astype(str)
+        dat[tmp > 0] = "Marker"
+        dat[tmp <= 0] = ""
     else:
         dat = tmp
     return (
@@ -80,7 +88,8 @@ def prepare_bias_table(adata):
             get_stats_frame(
                 adata,
                 layer = stats if stats != "bias" else None,
-                is_bias = stats in ["bias", "bias_scanpy"]
+                is_bias = stats in ["bias", "bias_scanpy"],
+                is_marker = stats in ["is_marker"],
             )
             for stats in ordered_stats
         ],
@@ -151,18 +160,18 @@ def export_excel(expr_bias, info, tissue_stats, outfile):
     row = 7
     for col in ordered_cols:
         readme.write(row, 0, col, cell_format)
-        readme.write(row, 1, info[col], cell_format)
+        readme.write(row, 1, info.get(col, "unknown"), cell_format)
         row += 1
     for col in ordered_stats:
         readme.write(row, 1, col, cell_format)
-        readme.write(row, 2, info[col], cell_format)
+        readme.write(row, 2, info.get(col, "unknown"), cell_format)
         row += 1
     row += 1
     readme.write(row, 0, "Row information:", bold_format)
     row += 1
     for col in ordered_rows:
         readme.write(row, 0, col, cell_format)
-        readme.write(row, 1, info[col], cell_format)
+        readme.write(row, 1, info.get(col, "unknown"), cell_format)
         row += 1
 
     detailed = (
