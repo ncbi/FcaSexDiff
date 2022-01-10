@@ -35,7 +35,7 @@ ordered_rows = [
 ]
 
 ordered_cols = [
-    'cluster', 'top_markers',
+    'cluster', 'markers',
 #    'annotations_female', 'annotations_male',
     'annotations', 'major_annotation',
 #    'tissue_count_female', 'tissue_count_male',

@@ -23,7 +23,7 @@ configfile: "config/config.yaml"
 
 include: "rules/common.smk"
 #include: "rules/get_loom.smk"
-#include: "rules/prepare_expression_h5ad.smk"
+include: "rules/prepare_expression_h5ad.smk"
 ##include: "rules/run_scpopcorn.smk"
 ##include: "rules/integrate_scpopcorn_results.smk"
 include: "rules/sexbias.smk"

@@ -46,6 +46,16 @@ rule normalize_expr:
     "../scripts/normalize.py"
 
 
+rule filter_cells_by_annotations:
+  input:
+    "scraps/lognorm_h5ad/lognorm_{tissue}_{fcaver}.h5ad",
+    "resources/sex_specific_annotations.csv",
+  output:
+    "scraps/filtered_lognorm_h5ad/cellfilter~{cellfilt}/filtered_lognorm_{tissue}_{fcaver}_{cellfilt}.h5ad",
+  script:
+    "../scripts/filter_cells_by_annotations.py"
+
+
 append_final_output(expand(
   "scraps/lognorm_h5ad/lognorm_{tissue}_{fcaver}.h5ad",
   zip,
@@ -53,4 +63,13 @@ append_final_output(expand(
   fcaver = samples["fcaver"],
 ))
 
+tasks = samples.explode("cellfilts")
+
+append_final_output(expand(
+  "scraps/filtered_lognorm_h5ad/cellfilter~{cellfilt}/filtered_lognorm_{tissue}_{fcaver}_{cellfilt}.h5ad",
+  zip,
+  tissue = tasks["tissue"],
+  fcaver = tasks["fcaver"],
+  cellfilt=tasks["cellfilts"],
+))
 

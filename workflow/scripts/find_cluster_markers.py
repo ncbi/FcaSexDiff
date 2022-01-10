@@ -3,40 +3,26 @@ import pandas as pd
 import numpy as np
 import scanpy as sc
 import anndata as ad
-from ast import literal_eval
-from tqdm import tqdm
-from scipy import sparse
-from scipy.stats import binom_test
-from scipy.stats import fisher_exact
-from collections import OrderedDict
-from statsmodels.stats.multitest import multipletests
-
-PSEUDO_EXPR = 1e-9
-PSEUDO_COUNT = 1e-256
 
 exprfile = snakemake.input[0]
 resol = snakemake.wildcards['resol']
-newexprfile = snakemake.output[0]
-markerfile = snakemake.output[1]
+markerfile = snakemake.output[0]
 
 print(exprfile)
 print(resol)
-print(newexprfile)
 print(markerfile)
 
-def find_markers(adata):
+def find_markers(adata, groupby):
 
     # use normalized expression all through
-
     error = False
+    marker_info = pd.DataFrame()
+    top_markers = {}
 
-    markers = pd.DataFrame()
-
-    # scanpy assumes expression is already in log scale
     try:
         sc.tl.rank_genes_groups(
-            adata, 'cluster', groups="all", reference="rest",
-            pts=True, method='wilcoxon', key_added = "wilcoxon"
+            adata, groupby, groups = "all", reference = "rest",
+            pts = True, method = 'wilcoxon', key_added = "marker_wilcoxon"
         )
     except AttributeError as e:
         print('\tSample doesn\'t contain one group')
@@ -45,8 +31,9 @@ def find_markers(adata):
     except IndexError:
         print('\tNot enough cells in one group')
         error = True
-    except ZeroDivisionError:
+    except ZeroDivisionError as e:
         print('\tZero division!')
+        print(e)
         error = True
     except ValueError as e:
         print('\tSample doesn\'t contain one group')
@@ -54,76 +41,62 @@ def find_markers(adata):
         error = True
     if not error:
         frames = []
-        clusters = adata.obs.cluster.unique()
+        clusters = adata.obs[groupby].unique()
         for cls in clusters:
-            frames.append(pd.DataFrame({
+            tmp_frame = pd.DataFrame({
                 # t is a rec.array which can be indexed by col name
-                col : [t[cls] for t in adata.uns['wilcoxon'][rec]]
+                col : [t[cls] for t in adata.uns['marker_wilcoxon'][rec]]
                 for col,rec in [
                     ('symbol','names'),
-                    ('log2fc', 'logfoldchanges'),
-                    ('pval', 'pvals'),
-                    ('padj', 'pvals_adj'),
-                    ('score', 'scores'),
+                    ('marker_log2fc', 'logfoldchanges'),
+                    ('marker_pval', 'pvals'),
+                    ('marker_padj', 'pvals_adj'),
+                    ('marker_score', 'scores'),
                 ]
-            }).set_index('symbol'))
-        markers = pd.concat(frames, axis=1, keys = clusters, names =
+            }).set_index('symbol')
+            # scanpy already arrange the genes as per descending marker scores
+            top_markers[cls] = ','.join(tmp_frame.head(10).index)
+            frames.append(tmp_frame)
+
+        marker_info = pd.concat(frames, axis=1, keys = clusters, names =
                             ['cluster', 'stats'])
-        markers.columns = markers.columns.swaplevel()
+        marker_info.columns = marker_info.columns.swaplevel()
 
-        print(markers)
+        print(marker_info)
         # rows in pts are in different order of symbols, handle separately
-        pts = pd.DataFrame(adata.uns['wilcoxon']['pts'])
-        pts = pd.concat([pts], axis=1, keys=["pct"], names=["stats", "cluster"])
+        pts = pd.DataFrame(adata.uns['marker_wilcoxon']['pts'])
+        pts = pd.concat([pts], axis=1, keys=["frac_all"], names=["stats", "cluster"])
 
-        markers = (
-            pd.concat([markers, pts], axis=1)
+        marker_info = (
+            pd.concat([marker_info, pts], axis=1)
             .sort_index(1)
         )
-        print(markers)
+        print(marker_info)
 
-    return adata, markers
+    return top_markers, marker_info
 
 
-def do_all(exprfile, reosl, newexprfile, markerfile):
+
+def do_all(exprfile, resol, outfile):
     adata = ad.read_h5ad(exprfile)
-    adata = adata[adata.obs.sex.isin(["female", "male"])]
 
-    assert("cluster" not in adata.obs.columns)
-    adata.obs = adata.obs.assign(cluster = lambda df: df[resol].astype(str))
-    adata.obs = adata.obs.assign(cluster = lambda df: df["cluster"].apply(lambda x: f"C{x}"))
-    print(adata)
-    print(adata.obs[["cluster"]])
+    # ideally we should call find_markers after filtering the cells.
+    # however scanpy gives ZeroDivisionError, calling here does not give
+    top_markers, marker_info = find_markers(adata, resol)
+    print(top_markers)
+    print(marker_info)
+
+    print(top_markers.values())
+    print(top_markers.keys())
+    top_markers = pd.DataFrame(dict(
+        markers = list(top_markers.values()),
+        cluster = list(top_markers.keys())
+    )).set_index("cluster")
+    print(top_markers)
+        
+    marker_info.to_hdf(outfile, key = "info")
+    top_markers.to_hdf(outfile, key = "top")
 
 
-
-    res_ad, markers = find_markers(adata)
-    print(res_ad)
-    print(markers)
-
-    is_marker = (markers['padj'] < 0.05) & (markers['log2fc'] > 1)
-
-    gene_meta = (
-        adata.var.loc[markers.index, :]
-        .assign(marker_cls = is_marker.sum(axis=1))
-    )
-
-    cluster_meta = (
-        count_bias.loc[is_marker.columns, :]
-    )
-
-    layers = OrderedDict()
-    for stat in markers.columns.get_level_values("stats").unique():
-        layers[stat] = markers[stat].values
-
-    ad.AnnData(
-        sparse.csr_matrix(is_marker),
-        obs = gene_meta,
-        var = cluster_meta,
-        layers = layers,
-    ).write_h5ad(markerfile)
-
-    res_ad.write_h5ad(newexprfile)
-
-do_all(exprfile, resol, newexprfile, markerfile)
+do_all(exprfile, resol, markerfile)
 
