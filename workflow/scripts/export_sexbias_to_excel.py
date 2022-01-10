@@ -118,7 +118,7 @@ def prepare_bias_table(adata):
     return expr_bias
 
 
-def export_excel(expr_bias, info, tissue_stats, outfile):
+def write_to_excel(detailed, info, tissue_stats, outfile):
 
     d2x = DF2Excel(outfile)
 
@@ -174,6 +174,20 @@ def export_excel(expr_bias, info, tissue_stats, outfile):
         readme.write(row, 1, info.get(col, "unknown"), cell_format)
         row += 1
 
+    #d2x.write(summary, 'Summary', write_index=True)
+
+    print(tissue_stats)
+
+    tissue_stats.loc["comment", "tissue_rep_counts_female"] = "replicates"
+    tissue_stats.loc["comment", "tissue_rep_counts_male"] = "replicates"
+    tissue_stats.T.to_excel(d2x.writer, sheet_name='Detailed')
+    d2x.write(detailed, 'Detailed')
+
+    d2x.close()
+
+
+def export_excel(expr_bias, info, tissue_stats, outfile):
+
     detailed = (
         expr_bias.sort_index(0)
         .sort_index(1)
@@ -202,14 +216,47 @@ def export_excel(expr_bias, info, tissue_stats, outfile):
     #print(summary)
 
     #d2x.write(summary, 'Summary', write_index=True)
-    print(tissue_stats)
 
-    tissue_stats.loc["comment", "tissue_rep_counts_female"] = "replicates"
-    tissue_stats.loc["comment", "tissue_rep_counts_male"] = "replicates"
-    tissue_stats.T.to_excel(d2x.writer, sheet_name='Detailed')
-    d2x.write(detailed, 'Detailed')
+    write_to_excel(detailed, info, tissue_stats, outfile)
 
-    d2x.close()
+
+    cluster_info = detailed.columns.to_frame(index=False)
+    gene_info = detailed.index.to_frame(index=False)
+
+    old_columns = cluster_info.columns.tolist()
+
+    ncluster_in_chunk = 20
+    clusters = cluster_info.cluster.unique().tolist()
+    chunks = [
+        clusters[i:i+ncluster_in_chunk]
+        for i in range(0, len(clusters), ncluster_in_chunk)
+    ]
+    chunks = pd.DataFrame(
+        [[cl, ch+1] for ch, cls in enumerate(chunks) for cl in cls],
+        columns = ['cluster', 'chunk']
+    )
+    cluster_info = cluster_info.merge(chunks, how="left")
+    print(cluster_info)
+
+    cluster_info_xlsx = outfile.replace(".xlsx", "_cluster_info.xlsx")
+    gene_info_xlsx = outfile.replace(".xlsx", "_gene_info.xlsx")
+
+    cluster_info.set_index('cluster').to_excel(cluster_info_xlsx)
+    gene_info.set_index('symbol').to_excel(gene_info_xlsx)
+
+    detailed.columns = pd.MultiIndex.from_frame(
+        cluster_info[["chunk"] + old_columns]
+    )
+    # there is some bug in snakemake, following line gives error
+    # for ch, grp in detailed.groupby("cluster"):
+    for ch in cluster_info.chunk.unique():
+        grp = detailed.loc[
+            :,
+            detailed.columns.get_level_values("chunk") == ch
+        ]
+        chunk_file = outfile.replace(".xlsx", f"_chunk_{ch}.xlsx")
+        write_to_excel(grp, info, tissue_stats, chunk_file)
+
 
 
 # main function
