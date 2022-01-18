@@ -19,14 +19,41 @@ configfile: "config/config.yaml"
 
 
 ##### load rules #####
-
-
 include: "rules/common.smk"
+
+
+exclude = ['testis', 'ovary', 'male_reproductive_glands',
+           'gonad',
+           'all',
+           'test',
+#           'antenna', 'head',
+#           'body',
+           ]
+
+samples = samples.query("tissue not in @exclude")
+
+
+##samples = samples.query("tissue in ['leg', 'malpighian_tubule']")
+##samples = samples.query("tissue in ['leg']")
+##samples = samples.query("tissue in ['testis', 'ovary']")
+##samples = samples.query("tissue in ['gonad']")
+#samples = samples.query("tissue in ['malpighian_tubule']")
+#samples = samples.query("tissue in ['test']")
+#samples = samples.query("tissue in ['body', 'malpighian_tubule']")
+#samples = samples.query("tissue in ['body', 'head', 'test']")
+#samples = samples.query("tissue in ['body', 'head']")
+#samples = samples.query("tissue in ['body']")
+#samples = samples.query("tissue in ['antenna']")
+#samples = samples.query("tissue in ['fat_body']")
+samples = samples.query("tissue in ['heart']")
+#samples = samples.query("tissue in ['all']")
+
 #include: "rules/get_loom.smk"
-include: "rules/prepare_expression_h5ad.smk"
+#include: "rules/prepare_expression_h5ad.smk"
 ##include: "rules/run_scpopcorn.smk"
 ##include: "rules/integrate_scpopcorn_results.smk"
-include: "rules/sexbias.smk"
+#include: "rules/sexbias.smk"
+include: "rules/mphate.smk"
 ##include: "rules/markers.smk"
 #include: "rules/extract_ribosomal_expr.smk"
 

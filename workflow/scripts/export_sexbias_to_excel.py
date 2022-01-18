@@ -6,7 +6,10 @@ from io import StringIO
 from utils import DF2Excel, pvalstr
 
 bias_file = snakemake.input[0]
-outfile = snakemake.output[0]
+outfile = snakemake.output["big"]
+gene_info_xlsx = snakemake.output["genes"]
+cluster_info_xlsx = snakemake.output["clusters"]
+chunk_file_prefix = snakemake.params["chunk_prefix"]
 tissue = snakemake.wildcards.tissue
 resol = snakemake.wildcards.resol
 
@@ -238,9 +241,6 @@ def export_excel(expr_bias, info, tissue_stats, outfile):
     cluster_info = cluster_info.merge(chunks, how="left")
     print(cluster_info)
 
-    cluster_info_xlsx = outfile.replace(".xlsx", "_cluster_info.xlsx")
-    gene_info_xlsx = outfile.replace(".xlsx", "_gene_info.xlsx")
-
     cluster_info.set_index('cluster').to_excel(cluster_info_xlsx)
     gene_info.set_index('symbol').to_excel(gene_info_xlsx)
 
@@ -254,7 +254,7 @@ def export_excel(expr_bias, info, tissue_stats, outfile):
             :,
             detailed.columns.get_level_values("chunk") == ch
         ]
-        chunk_file = outfile.replace(".xlsx", f"_chunk_{ch}.xlsx")
+        chunk_file = f"{chunk_file_prefix}{ch}.xlsx"
         write_to_excel(grp, info, tissue_stats, chunk_file)
 
 

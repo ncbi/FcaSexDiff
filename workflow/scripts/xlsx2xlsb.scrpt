@@ -1,0 +1,11 @@
+#!/usr/bin/osascript
+on run {infile, outfile} 
+    tell application "Microsoft Excel"
+        activate
+        open infile
+        -- to know possible formats, open Script Editor and click 
+        -- Open dictionary > Microsoft Excel.app > Micrsoft Excel Suite -> save workbook as 
+        save active workbook in outfile as Excel binary file format
+        close active workbook
+    end tell
+end run
