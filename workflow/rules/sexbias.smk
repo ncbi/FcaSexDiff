@@ -53,6 +53,13 @@ rule export_excel:
   script:
     "../scripts/export_sexbias_to_excel.py"
 
+rule combine_biased_genes:
+  output:
+    "scraps/biased_genes/all_biased_genes_{resol}.tsv",
+  script:
+    "../scripts/combine_biased_genes.py"
+    
+
 
 tasks = samples.explode("resols").explode("cellfilts")
 
@@ -70,5 +77,8 @@ append_final_output(
       fcaver=tasks["fcaver"],
       resol=tasks["resols"],
       cellfilt=tasks["cellfilts"],
-    )
+    ) + [
+      "scraps/biased_genes/all_biased_genes_annotation.tsv",
+      "scraps/biased_genes/all_biased_genes_L6.0.tsv",
+    ]
 )

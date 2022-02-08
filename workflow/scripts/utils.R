@@ -7,6 +7,16 @@ get_var_anndata <- function(adata) {
   df
 }
 
+# get the var table in add anndata, including the varnames
+# as a column in the table
+get_obs_anndata <- function(adata) {
+  df = adata$obs
+  df[,attr(adata$obs_names,"name")] = adata$obs_names
+  df
+}
+
+
+## convert integer clusters to strings
 
 ## convert integer clusters to strings
 #format_cluster <- function(cluster_ids, prefix="", ndigit=-1) {
