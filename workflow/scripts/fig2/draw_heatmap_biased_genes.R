@@ -1,5 +1,6 @@
 library(ComplexHeatmap)
 library(tidyverse)
+library(anndata)
 
 infile <- snakemake@input[[1]]
 outfile <- snakemake@output[[1]]
@@ -16,35 +17,67 @@ process <- function(use_tissue, infile, outfile) {
 
   outfile1 <- tempfile(outbase)
   outfile2 <- tempfile(outbase)
-  df <- (
-    read.delim(infile)
-    %>% filter(tissue == use_tissue)
-  )
 
-  head(df)
-  unique(df$cluster)
+  ad = read_h5ad(infile)
+  print(ad)
 
-  mat  <- (
-    select(df, symbol, cluster, bias)
-    %>% spread("cluster", "bias", fill = 0)
-    %>% column_to_rownames("symbol")
-  )
+  mat  = as.matrix(ad$X)
+  zscore = ad$layers["score"]
+
+  biased_genes = rowSums(abs(mat)) > 0 
+
+  mat  = mat[biased_genes, ]
+  zscore = zscore[biased_genes, ]
 
 
-  pdf(outfile1, height=250, width=15)
-  h1 <- Heatmap(mat)
-  draw(h1)
-  dev.off()
+  pdf(outfile1, height=10, width=20)
 
-  pdf(outfile2, height=10, width=10)
-  h2 <- Heatmap(
+  h1 <- Heatmap(
     mat,
     show_row_names = FALSE
   )
-  draw(h2)
+  h <- draw(h1)
+
+  mat = mat[row_order(h), column_order(h)]
+  zscore = zscore[row_order(h), column_order(h)]
+
+  h1 <- Heatmap(
+    mat,
+    show_row_names = FALSE,
+    cluster_rows = FALSE,
+    cluster_columns = FALSE
+  )
+
+  h2 <- Heatmap(
+    zscore,
+    show_row_names = FALSE,
+    cluster_rows = FALSE,
+    cluster_columns = FALSE
+  )
+
+  draw(h1 + h2)
   dev.off()
 
-  system(paste("mergepdf", outfile2, outfile1, outfile))
+  pdf(outfile2, height=250, width=30)
+
+  h3 <- Heatmap(
+    mat
+    , cluster_rows = FALSE
+    , cluster_columns = FALSE
+  )
+
+  h4 <- Heatmap(
+    zscore
+    , cluster_rows = FALSE
+    , cluster_columns = FALSE
+  )
+
+  draw(h3 + h4)
+  dev.off()
+
+  system(paste("mergepdf", outfile1, outfile2, outfile))
 }
+
+
 
 process(tissue, infile, outfile)

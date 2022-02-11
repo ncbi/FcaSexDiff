@@ -1,6 +1,7 @@
 rule draw_heatmap:
   input:
-    "scraps/biased_genes/all_biased_genes_{resol}.tsv",
+    "exports/sexdiff/cellfilter~NoSexspecArtef/resolution~{resol}"
+    "/{tissue}/sexdiff_{tissue}_stringent_{resol}_NoSexspecArtef.h5ad"
   output:
     "scraps/fig2/heatmap_biased_genes_{tissue}_{resol}.pdf",
   script:
