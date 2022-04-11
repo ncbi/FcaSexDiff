@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 
+import os
 import pandas as pd
 import anndata as ad
 from io import StringIO
 from utils import DF2Excel, pvalstr
 
 bias_file = snakemake.input[0]
-outfile = snakemake.output["big"]
-gene_info_xlsx = snakemake.output["genes"]
-cluster_info_xlsx = snakemake.output["clusters"]
-chunk_file_prefix = snakemake.params["chunk_prefix"]
+outfile = snakemake.output[0]
+outdir = os.path.dirname(outfile) 
+gene_info_xlsx = outdir + "/gene_info.xlsx"
+cluster_info_xlsx = outdir + "/cluster_info.xlsx"
+chunk_file_prefix = outdir + "/sexdiff_chunk_"
 tissue = snakemake.wildcards.tissue
 resol = snakemake.wildcards.resol
 

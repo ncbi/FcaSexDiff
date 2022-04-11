@@ -1,0 +1,28 @@
+FlyBase ID	FBgn0004047
+Annotation Symbol	CG11129
+Symbol	Yp3
+Name	Yolk protein 3
+
+	Adult Male			Adult Female			Male v. Female		Larval
+Tissue	FPKM	SD	Enrichment	FPKM	SD	Enrichment	M/F	p value	FPKM	SD	Enrichment
+Head	9.54	1.01	3.8	7198.45	3,140.61	4.96	0.00	n.s.	-	-	-
+Eye	50.45	5.79	20.1	9392.62	484.38	6.47	0.01	n.s.	-	-	-
+Brain / CNS	5.34	7.12	2.13	550.95	296.72	0.38	0.01	n.s.	0.26	0.08	0.01
+Thoracicoabdominal ganglion	6.88	6.82	2.74	895.15	121.52	0.62	0.01	n.s.	-	-	-
+Crop	9.38	5.26	3.74	340.67	7.03	0.23	0.03	n.s.	-	-	-
+Midgut	3.71	0.28	1.48	4.93	1.44	0	0.75	n.s.	0.2	0.1	0.01
+Hindgut	3.41	3.6	1.36	990.17	460.87	0.68	0.00	n.s.	0.43	0.52	0.02
+Malpighian Tubules	3.57	4.18	1.42	205.41	96.96	0.14	0.02	n.s.	0.69	0.92	0.04
+Fat body	2.32	1.95	0.92	8110.61	1,153.19	5.59	0.00	p > 0.01	197.97	103.75	11.07
+Salivary gland	47.23	8.55	18.82	493.24	145.83	0.34	0.10	n.s.	8.29	4.93	0.46
+Heart	1.59	0.29	0.63	14162.02	6,173.06	9.76	0.00	n.s.	-	-	-
+Trachea	-	-	-	-	-	-	-	-	0.61	0.12	0.03
+Ovary	-	-	-	86.39	48.87	0.06	-	-	-	-	-
+Virgin Spermatheca	-	-	-	1622.47	466.47	1.12	-	-	-	-	-
+Mated Spermatheca	-	-	-	3896.13	1,197.98	2.69	-	-	-	-	-
+Testis	14.01	12.54	5.58	-	-	-	-	-	-	-	-
+Accessory glands	0.56	0.41	0.22	-	-	-	-	-	-	-	-
+Carcass	16.58	23.38	6.61	7251.02	1,436.95	5	0.00	p > 0.05	2.31	1.47	0.13
+Rectal pad	1.04	0.41	0.41	556.14	368.31	0.38	0.00	n.s.	-	-	-
+Garland cells	-	-	-	-	-	-	-	-	4.21	3.13	0.24
+Whole body	2.51	0.97	1	1451.07	725.31	1	0.00	n.s.	17.88	8.28	1

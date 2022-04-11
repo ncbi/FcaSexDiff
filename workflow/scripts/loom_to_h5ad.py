@@ -11,6 +11,17 @@ def loom_to_h5ad(loom_path, h5ad_path):
 
     # get resolution level names for 'Clusterings'
     a = json.loads(ds.attrs['MetaData'])
+    print(a["clusterings"])
+
+    for clustering in a['clusterings']:
+        print(f'Clustering: {clustering["name"]} has ID: {clustering["id"]}')
+
+    clustering_id_to_use = 1
+
+    print(ds.ra[f'ClusterMarkers_{clustering_id_to_use}'].dtype.names)
+    print(pd.DataFrame(ds.ra[f'ClusterMarkers_{clustering_id_to_use}']))
+    print(pd.DataFrame(ds.ra[f'ClusterMarkers_{clustering_id_to_use}_avg_logFC']))
+
     resol = (
       pd.DataFrame(a['clusterings'])
       [['id', 'name']]
@@ -19,6 +30,8 @@ def loom_to_h5ad(loom_path, h5ad_path):
             r'Leiden resolution (\d+\.\d+).*' : r'L\1',
         }
       ))
+      .assign(id = lambda df: df["id"].map(str))
+      .set_index("id")
     )
     print(resol)
 
@@ -35,11 +48,66 @@ def loom_to_h5ad(loom_path, h5ad_path):
                 r'SCENIC AUC t-SNE' : r'SCENIC_AUC_tSNE',
             }
         ))
+        .assign(id = lambda df: df.id.map(str))
+        .set_index("id")
     )
     print(embed)
 
+    exclude_list = [
+        "Clusterings", "MotifRegulonsAUC", "TrackRegulonsAUC",
+        "Embedding", "Embeddings_X", "Embeddings_Y",
+    ]
 
-    cell_meta = pd.DataFrame.from_dict({x:ds.ca[x] for x in ds.ca.keys()})
+    # make column meta data from loom column attributes
+    # except for Clusterings which will be handled separately
+    cell_meta = pd.DataFrame.from_dict({
+        x:ds.ca[x]
+        for x in ds.ca.keys()
+        if x not in exclude_list
+    })
+    print(cell_meta)
+    print(cell_meta.columns)
+    print(exclude_list)
+
+    # breakup 'Embeddings_X, _Y' columns to individual embeddings
+
+    embed_x = pd.DataFrame(ds.ca["Embeddings_X"])
+    embed_x.columns = (
+        embed.loc[embed_x.columns.tolist()]
+        ["label"].map(lambda x: f"{x}1")
+    )
+    print(embed_x)
+
+    embed_y = pd.DataFrame(ds.ca["Embeddings_Y"])
+    embed_y.columns = (
+        embed.loc[embed_y.columns.tolist()]
+        ["label"].map(lambda x: f"{x}2")
+    )
+    print(embed_y)
+
+    # breakup 'Clusterings' column to individual resolution levels
+    clusterings = pd.DataFrame(ds.ca["Clusterings"])
+    print(clusterings)
+
+    resol = resol.loc[clusterings.columns.tolist()]
+    clusterings.columns = resol["label"].tolist()
+    print(clusterings)
+    print(clusterings.iloc[:,0:9])
+
+    cell_meta = pd.concat([cell_meta, embed_x, embed_y, clusterings], axis=1)
+    print(cell_meta)
+    print(cell_meta.columns)
+
+    # change integer cluster number to formatted strings
+    for res_lab in resol['label']:
+        if res_lab[0] == "L":
+            # do it for leiden levels only 
+            ndigit = np.ceil(np.log10(cell_meta[res_lab].max()+1)).astype(int)
+            cell_meta[res_lab] = cell_meta[res_lab].apply(
+                lambda x: f"{res_lab}C{x:0>{ndigit}d}"
+            )
+    print(cell_meta)
+
 
     # create a new cell_meta column representing short FCA sample id
     assert("sample" not in cell_meta.columns)
@@ -48,34 +116,6 @@ def loom_to_h5ad(loom_path, h5ad_path):
         cell_meta["sample_id"]
         .str.split("__").str[1]
         .str.split("_").str[0]
-    )
-
-    # breakup 'Clusterings' column to individual resolution levels
-    cell_meta = (
-        cell_meta
-        .merge(cell_meta['Clusterings'].apply(
-            lambda x: pd.Series(x, index=resol['label'])
-        ), left_index=True, right_index=True)
-        .drop(columns = ['Clusterings'])
-    )
-
-    # change integer cluster number to formatted strings
-    for res_lab in resol['label']:
-        ndigit = np.ceil(np.log10(cell_meta[res_lab].max()+1)).astype(int)
-        cell_meta[res_lab] = cell_meta[res_lab].apply(
-            lambda x: f"{res_lab}C{x:0>{ndigit}d}"
-        )
-
-    # breakup 'Embeddings_X, _Y' columns to individual embeddings
-    cell_meta = (
-        cell_meta
-        .merge(cell_meta['Embeddings_X'].apply(
-            lambda x: pd.Series(x, index=embed['label']+'1')
-        ), left_index=True, right_index=True)
-        .merge(cell_meta['Embeddings_Y'].apply(
-            lambda x: pd.Series(x, index=embed['label']+'2')
-        ), left_index=True, right_index=True)
-        .drop(columns=['Embeddings_X', 'Embeddings_Y'])
     )
 
     cell_meta = cell_meta.set_index('CellID')

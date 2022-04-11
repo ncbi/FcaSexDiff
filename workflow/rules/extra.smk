@@ -75,8 +75,14 @@ specials = tasks.query("tissue in ['body', 'head', 'test']")
 append_final_output(
     expand(
       [
-        "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/maplots_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
+#        "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/maplots_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
         "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/AkhR_violin_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
+        "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/RpL3_violin_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
+        "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/cwo_violin_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
+        "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/Hr38_violin_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
+        "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/Hsp26_violin_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
+        "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/Yp1_violin_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
+        "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/Yp2_violin_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
       ],
       zip,
       allow_missing=True,
@@ -86,8 +92,8 @@ append_final_output(
       cellfilt=tasks["cellfilts"],
     ) + expand(
       [
-        "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/tsne_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
-        "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/scatter_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
+#        "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/tsne_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
+#        "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/scatter_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
       ],
       zip,
       allow_missing=True,
@@ -96,7 +102,7 @@ append_final_output(
       resol=specials["resols"],
       cellfilt=specials["cellfilts"],
     ) + [
-      "exports/extras/summary_sexbiased_genes_annotation.xlsx",
+#      "exports/extras/summary_sexbiased_genes_annotation.xlsx",
     ]
 )
 

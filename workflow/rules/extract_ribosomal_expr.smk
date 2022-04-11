@@ -13,18 +13,18 @@ rule extract_rp_expr:
 
 rule:
   input:
-    body="scraps/extra/cellfilter~NoSexspecArtef/resolution~L6.0/body/ribosomal_details_body_stringent_L6.0_NoSexspecArtef.h5",
-    head="scraps/extra/cellfilter~NoSexspecArtef/resolution~L6.0/head/ribosomal_details_head_stringent_L6.0_NoSexspecArtef.h5",
+    body="scraps/extra/cellfilter~NoSexspecArtef/resolution~L4.0/body/ribosomal_details_body_stringent_L4.0_NoSexspecArtef.h5",
+    head="scraps/extra/cellfilter~NoSexspecArtef/resolution~L4.0/head/ribosomal_details_head_stringent_L4.0_NoSexspecArtef.h5",
   output:
-    "exports/extra/cellfilter~{cellfilt}/resolution~{resol}/ribosomal_proteins_L6.0_clusterwise.xlsx",
+    "exports/extra/cellfilter~{cellfilt}/resolution~{resol}/ribosomal_proteins_L4.0_clusterwise.xlsx",
   script:
     "../scripts/export_summary_ribosomal_proteins.py"
 
 append_final_output(
   [
-    "scraps/extra/cellfilter~NoSexspecArtef/resolution~L6.0/body/ribosomal_details_body_stringent_L6.0_NoSexspecArtef.h5",
-    "scraps/extra/cellfilter~NoSexspecArtef/resolution~L6.0/head/ribosomal_details_head_stringent_L6.0_NoSexspecArtef.h5",
-    "exports/extra/cellfilter~NoSexspecArtef/resolution~L6.0/ribosomal_proteins_L6.0_clusterwise.xlsx",
+    "scraps/extra/cellfilter~NoSexspecArtef/resolution~L4.0/body/ribosomal_details_body_stringent_L4.0_NoSexspecArtef.h5",
+    "scraps/extra/cellfilter~NoSexspecArtef/resolution~L4.0/head/ribosomal_details_head_stringent_L4.0_NoSexspecArtef.h5",
+    "exports/extra/cellfilter~NoSexspecArtef/resolution~L4.0/ribosomal_proteins_L4.0_clusterwise.xlsx",
   ]
 )
 

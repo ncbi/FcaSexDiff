@@ -37,6 +37,7 @@ get_bias <- function(tissue) {
   bias <- (
     get_var_anndata(ad)
     %>% select(cluster, major_annotation, cluster_rep_fracs_mean_female,
+               cluster_count_female, cluster_count_male,
                cluster_rep_fracs_mean_male, cluster_rep_fracs_sd_female,
                cluster_rep_fracs_sd_male, count_bias_padj,
                log2_count_bias, count_bias_type, female_gene, male_gene)

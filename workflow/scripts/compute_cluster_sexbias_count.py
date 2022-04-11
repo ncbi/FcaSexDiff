@@ -13,10 +13,12 @@ from numpyencoder import NumpyEncoder # Needed for numpy -> json conversion
 from define_sexbias_cutoffs import *
 
 exprfile = snakemake.input[0]
+cellsfile = snakemake.input[1]
 resol = snakemake.wildcards['resol']
 outfile = snakemake.output[0]
 
 print(exprfile)
+print(cellsfile)
 print(resol)
 print(outfile)
 
@@ -299,8 +301,10 @@ def compute_sexbiased_counts_male_to_female(meta):
     return res
 
 
-def do_all(exprfile, resol, outfile):
+def do_all(exprfile, cellsfile, resol, outfile):
     adata = ad.read_h5ad(exprfile)
+    cells = pd.read_csv(cellsfile)
+    adata = adata[cells.CellID]
 
     assert("cluster" not in adata.obs.columns)
     meta_data = (
@@ -317,5 +321,5 @@ def do_all(exprfile, resol, outfile):
 
     count_bias.to_hdf(outfile, key='bias')
 
-do_all(exprfile, resol, outfile)
+do_all(exprfile, cellsfile, resol, outfile)
 

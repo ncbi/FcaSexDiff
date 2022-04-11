@@ -45,13 +45,16 @@ if (resol == "annotation") {
 df = left_join(df, info)
 head(df)
 
+ncluster = length(unique(df$label))
 
-pdf(outfile, height=10, width=15)
+pdf(outfile, height=2*ncluster, width=15)
 (
- ggplot(df, aes(x=label, y=gene, fill=sex, color=sex))
+ ggplot(df, aes(x=sex, y=gene, fill=sex, color=sex, group=batch))
  + geom_violin(alpha = 0.25)
- + geom_boxplot(outlier.colour=NA, position=position_dodge(width=0.9), alpha=0.25)
+ + geom_boxplot(outlier.colour=NA, position=position_dodge(width=0.8), alpha=0.25)
  + geom_point(position=position_jitterdodge(dodge.width=0.9), color="black", alpha=0.25)
  + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
  + labs(x="cluster", y=paste(symbol, "expression (log normalized)"))
+ + facet_wrap(~label, ncol=2)
+ + coord_flip()
 )

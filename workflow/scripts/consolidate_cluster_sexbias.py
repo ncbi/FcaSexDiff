@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+import re
+import json
+import scanpy as sc
 import pandas as pd
 import numpy as np
 import anndata as ad
@@ -10,6 +13,7 @@ from define_sexbias_cutoffs import *
 from get_bias_info import *
 
 exprfile = snakemake.input["expr"]
+cellsfile = snakemake.input["cells"]
 count_bias_file = snakemake.input["cntbias"]
 expr_bias_file = snakemake.input["exprbias"]
 marker_file = snakemake.input["mark"]
@@ -18,13 +22,55 @@ cell_filter = snakemake.wildcards['cellfilt']
 outfile = snakemake.output[0]
 
 print(exprfile)
+print(cellsfile)
+print(count_bias_file)
+print(expr_bias_file)
+print(marker_file)
+print(resol)
+print(cell_filter)
 print(outfile)
 
 
-def do_all(exprfile, resol, count_bias_file, expr_bias_file, marker_file, outfile):
+def get_tissue_stats(adata, name):
+    resols = ["annotation"] + [
+        x for x in adata.obs.columns if re.match("L\d+.\d+", x)
+    ]
+    print(resols)
+    num_clusters = {x:len(adata.obs[x].unique()) for x in resols}
+    print(num_clusters)
+
+    return pd.DataFrame(dict(
+        n_gene               = [adata.shape[1]],
+        n_cluster            = [json.dumps(num_clusters)],
+        tissue_count         = [adata.shape[0]],
+        tissue_count_female  = [adata.obs.query("sex == 'female'").shape[0]],
+        tissue_count_male    = [adata.obs.query("sex == 'male'").shape[0]],
+        tissue_rep_counts_female = [json.dumps(
+            adata.obs.query("sex == 'female'")["sample"].astype(str)
+            .value_counts(sort=False).sort_index().to_dict()
+        )],
+        tissue_rep_counts_male = [json.dumps(
+            adata.obs.query("sex == 'male'")["sample"].astype(str)
+            .value_counts(sort=False).sort_index().to_dict()
+        )],
+    ), index=[name])
+
+
+def do_all(exprfile, cellsfile, resol, count_bias_file, expr_bias_file, marker_file, outfile):
 
     adata = ad.read_h5ad(exprfile)
-    tissue_stats = adata.uns["stats"]
+
+    # first discard cells that have 'mix' sex
+    adata = adata[adata.obs.sex.isin(["female", "male"])]
+    tissue_stats = get_tissue_stats(adata, "AllCells")
+
+    cells = pd.read_csv(cellsfile)
+    adata = adata[cells.CellID]
+
+    if cell_filter != "AllCells":
+        tissue_stats_filtered = get_tissue_stats(adata, cell_filter)
+        tissue_stats = pd.concat([tissue_stats, tissue_stats_filtered])
+    print(tissue_stats)
 
     count_bias = pd.read_hdf(count_bias_file)
     print(count_bias)
@@ -50,6 +96,10 @@ def do_all(exprfile, resol, count_bias_file, expr_bias_file, marker_file, outfil
 
     marker_info = pd.read_hdf(marker_file, key="info")
     top_markers = pd.read_hdf(marker_file, key="top")
+    marker_info.index = marker_info.index.map(
+        lambda x: 'nan' if pd.isna(x) else x
+    )
+
 
     print(top_markers)
 
@@ -64,9 +114,15 @@ def do_all(exprfile, resol, count_bias_file, expr_bias_file, marker_file, outfil
     cluster_order = gene_bias.columns
 
     print(sum(pd.isna(gene_order)))
+    print(sum(pd.isna(marker_info.index)))
+
 
     # make sure that the columns in marker_info are in cluster order
     marker_info = marker_info.reindex(cluster_order, axis=1, level='cluster')
+
+    print(gene_order)
+    marker_info = marker_info.loc[gene_order, :]
+    print(marker_info)
 
     is_marker = (
         (marker_info['marker_padj'] < PADJ_CUTOFF_MARKER) &
@@ -110,5 +166,5 @@ def do_all(exprfile, resol, count_bias_file, expr_bias_file, marker_file, outfil
 
     adata.write_h5ad(outfile)
 
-do_all(exprfile, resol, count_bias_file, expr_bias_file, marker_file, outfile)
+do_all(exprfile, cellsfile, resol, count_bias_file, expr_bias_file, marker_file, outfile)
 

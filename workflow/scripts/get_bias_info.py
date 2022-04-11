@@ -4,6 +4,10 @@ info = dict(
   cluster = (
     "Cluster name (cell type if annotation is used)"
   ),
+  markers = (
+    "Top 10 marker genes that are differentially highly expressed in"
+    " the cluster than the rest of the clusters"
+  ),
   annotations_female = (
     "Replicate-wise counts of annotated celltypes among female cells in the cluster"
   ),

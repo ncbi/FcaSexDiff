@@ -17,10 +17,10 @@ rule draw_upset:
 
 append_final_output(
   [
-    "scraps/fig2/heatmap_biased_genes_body_L6.0.pdf",
-    "scraps/fig2/heatmap_biased_genes_head_L6.0.pdf",
-    "scraps/fig2/upset_biased_genes_body_L6.0.pdf",
-    "scraps/fig2/upset_biased_genes_head_L6.0.pdf",
+    "scraps/fig2/heatmap_biased_genes_body_L4.0.pdf",
+    "scraps/fig2/heatmap_biased_genes_head_L4.0.pdf",
+    "scraps/fig2/upset_biased_genes_body_L4.0.pdf",
+    "scraps/fig2/upset_biased_genes_head_L4.0.pdf",
   ]
 )
 

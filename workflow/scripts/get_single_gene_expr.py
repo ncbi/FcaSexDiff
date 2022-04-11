@@ -41,18 +41,14 @@ def do_all(exprfile, sex_specific_annotations_file, reosl, outfile):
     print(adata)
 
     assert("cluster" not in adata.obs.columns)
-    adata.obs = adata.obs.assign(cluster = lambda df: (
-        df[resol] if resol == "annotation" else df[resol].apply(
-            lambda x: f"{resol}C{x}"
-        )
-    ))
+    adata.obs = adata.obs.assign(cluster = lambda df: df[resol])
     print(adata)
 
     expr = adata[:, [gene, "dsx"]].to_df()
 
     df = (
-        adata.obs[["tissue", "sex", "cluster", "annotation"]]
-        .assign(**{gene: expr["AkhR"]})
+        adata.obs[["sample", "batch", "tissue", "sex", "cluster", "annotation"]]
+        .assign(**{gene: expr[gene]})
         .assign(dsx = expr["dsx"])
     )
     print(df)

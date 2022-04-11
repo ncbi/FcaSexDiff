@@ -13,10 +13,27 @@ out_csv_head <- "exports/fig1/fig1_data_head.csv"
 out_pdf_file <- "exports/fig1/fig1.pdf"
 
 
-body_bias <- read.csv(out_csv_body, row.names=1)
-head(body_bias)
+body_bias <- (
+  read.csv(out_csv_body, row.names=1)
+  %>% mutate(count_bias_type = ifelse(count_bias_type == "FemaleSignificant", "FemaleBiased", ifelse(count_bias_type == "MaleSignificant", "MaleBiased", "UnBiased")))
+  %>% rowwise()
+  #%>% filter(max(cluster_count_male, cluster_count_female) >= 10)
+  %>% filter(min(cluster_count_male, cluster_count_female) > 10)
+)
+unique(body_bias$count_bias_type)
+unique(body_bias$expr_bias_type)
+unique(body_bias$rp_bias_type)
+unique(body_bias$nonrp_bias_type)
 
-head_bias <- read.csv(out_csv_head, row.names=1)
+
+
+head_bias <- (
+  read.csv(out_csv_head, row.names=1)
+  %>% mutate(count_bias_type = ifelse(count_bias_type == "FemaleSignificant", "FemaleBiased", ifelse(count_bias_type == "MaleSignificant", "MaleBiased", "UnBiased")))
+  %>% rowwise()
+  #%>% filter(max(cluster_count_male, cluster_count_female) >= 10)
+  %>% filter(min(cluster_count_male, cluster_count_female) > 10)
+)
 head(head_bias)
 
 get_cell_data <- function(tissue) {
@@ -44,37 +61,39 @@ head(head)
 theme_base_size = 9
 
 count_bias_colors <- c(
-    "FemaleOnly" = "#A60000", #"red",
-    "FemaleSignificant" = "#FF5233", #"red",
-    "FemaleNonsignificant" = "#FFbbbc", # "#BC544B", #"pink",
+    #"FemaleOnly" = "red", #"#A60000", #"red",
+    #"FemaleSignificant" = "red", #"#FF5233", #"red",
+    #"FemaleNonsignificant" = "red", #"#FFbbbc", # "#BC544B", #"pink",
+    "FemaleBiased" = "red", #"#FF5233",
     "Unbiased" = "gray",
-    "MaleNonsignificant" = "#B2D8FF", #"#73C2FB", #maya
-    "MaleSignificant" = "#023672", #"blue",
-    "MaleOnly" = "#021732" #"blue"
+    "MaleBiased" = "blue" #"#023672",
+    #"MaleNonsignificant" = "blue", #"#B2D8FF", #"#73C2FB", #maya
+    #"MaleSignificant" = "blue", #"#023672", #"blue",
+    #"MaleOnly" = "blue" #"#021732" #"blue"
 )
 
 expr_bias_colors <- c(
-    "FemaleOnly" = "#A60000", #"red",
-    "FemaleBiased" = "#FF5233",
-    "Unbiased" = "gray",
-    "MaleBiased" = "#023672",
-    "MaleOnly" = "#021732" #"blue"
+    #"FemaleOnly" = "red", #"#A60000", #"red",
+    "FemaleBiased" = "red", #"#FF5233",
+    "Unbiased" = "purple",
+    "MaleBiased" = "blue" #"#023672",
+    #"MaleOnly" = "blue" #"#021732" #"blue"
 )
 
 rp_bias_colors <- c(
-    "FemaleOnly" = "#A60000", #"red",
-    "FemaleBiased" = "#FF5233",
-    "Unbiased" = "gray",
-    "MaleBiased" = "#023672",
-    "MaleOnly" = "#021732" #"blue"
+    #"FemaleOnly" = "red", #"#A60000", #"red",
+    "FemaleBiased" = "red", #"#FF5233",
+    "Unbiased" = "purple",
+    "MaleBiased" = "blue" #"#023672",
+    #"MaleOnly" = "blue" #"#021732" #"blue"
 )
 
 nonrp_bias_colors <- c(
-    "FemaleOnly" = "#A60000", #"red",
-    "FemaleBiased" = "#FF5233",
-    "Unbiased" = "gray",
-    "MaleBiased" = "#023672",
-    "MaleOnly" = "#021732" #"blue"
+    #"FemaleOnly" = "red", #"#A60000", #"red",
+    "FemaleBiased" = "red", #"#FF5233",
+    "Unbiased" = "purple",
+    "MaleBiased" = "blue" #"#023672",
+    #"MaleOnly" = "blue" #"#021732" #"blue"
 )
 
 
@@ -154,8 +173,8 @@ get_scatter_rp <- function(df, title) {
     + geom_point(size=1)
     + labs(
         title=title,
-        y='Avg RP gene expr in female',
-        x='Avg RP gene expr in male'
+        y='% RP genes female biased',
+        x='% RP genes male biased'
     )
     #+ coord_fixed()
     + theme_few(base_size=theme_base_size)

@@ -14,14 +14,15 @@ def make_better(name):
 class DF2Excel:
     def __init__(self, excel_path):
         self.writer = pd.ExcelWriter(excel_path, engine='xlsxwriter')
+        self.writer.book.use_zip64()
+        self.is_open = True
 
     def __del__(self):
-        self.writer.book.use_zip64()
-        self.writer.save()
+        if self.is_open: self.close()
 
     def close(self):
-        self.writer.book.use_zip64()
         self.writer.save()
+        self.is_open = False
 
     def single_idx_df_to_excel(self, dataframe, sheet_name, write_header,
                                write_index, start_row = 0):
