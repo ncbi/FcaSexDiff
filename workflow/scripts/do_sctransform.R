@@ -9,10 +9,20 @@ outfile <- "scraps/lognorm_h5ad/sct_lognorm_body_stringent_female.h5ad"
 
 infile <- snakemake@input[[1]]
 outfile <- snakemake@output[[1]]
+norm_method <- snakemake@wildcards[["expr"]]
+
+if (norm_method == "SCTrans") {
+  vars_to_regress <- c("batch")
+} else if (norm_method == "SCTransNoBatchRegress") {
+  vars_to_regress <- c()
+} else {
+  stop(paste("Worng normalization method name", norm_method))
+}
 
 print(infile)
 print(outfile)
-
+print(norm_method)
+print(vars_to_regress)
 
 
 transform <- function(ad) {
@@ -34,7 +44,7 @@ transform <- function(ad) {
 
   so <- SCTransform(
     so
-    , vars.to.regress = c('batch')
+    , vars.to.regress = vars_to_regress
     , return.only.var.genes = FALSE
     # change it to zero to match number of genes in RNA & SCT
     # but that gives some NA error

@@ -46,6 +46,8 @@ rule filter_cells_by_annotations:
   script:
     "../scripts/filter_cells_by_annotations.py"
 
+ruleorder: normalize_expr > sctransform_expr
+
 rule normalize_expr:
   input:
     h5ad_from_loom.path,
@@ -58,7 +60,7 @@ rule sctransform_expr:
   input:
     h5ad_from_loom.path,
   output:
-    normalized_h5ad.fix(expr = "SCTrans").path
+    normalized_h5ad.path
   script:
     "../scripts/do_sctransform.R"
 

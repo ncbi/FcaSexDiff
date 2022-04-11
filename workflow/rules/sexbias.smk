@@ -48,6 +48,15 @@ rule export_excel:
   script:
     "../scripts/export_sexbias_to_excel.py"
 
+rule compare_normalization_cutoffs:
+  input:
+    sexdiff_h5ad.path
+  output:
+    compare_params_sexdiff.path
+  script:
+    "../scripts/compare_normalization_and_cutoffs.R"
+
+
 #rule combine_biased_genes:
 #  output:
 #    "scraps/biased_genes/all_biased_genes_{resol}.tsv",
@@ -85,6 +94,11 @@ append_final_output(
          expr = "SCTrans",
        ),
        sexdiff_excel.path.format(
+         tissue = "body", fcaver = "stringent",
+         cellfilt = "NoSexspecArtef",  resol = "L4.0",
+         expr = "SCTransNoBatchRegress",
+       ),
+       sexdiff_excel.path.format(
          tissue = "head", fcaver = "stringent",
          cellfilt = "NoSexspecArtef",  resol = "L4.0",
          expr = "LogNorm",
@@ -94,19 +108,13 @@ append_final_output(
          cellfilt = "NoSexspecArtef",  resol = "L4.0",
          expr = "SCTrans",
        ),
-#      "scraps/biased_genes/all_biased_genes_annotation.tsv",
-#      "scraps/biased_genes/all_biased_genes_L4.0.tsv",
-    ]
+    ] + expand(
+      compare_params_sexdiff.path,
+      tissue = ["head", "body"],
+      fcaver = "stringent",
+      cellfilt = "NoSexspecArtef",
+      resol = "L4.0",
+      expr = ["LogNorm", "SCTrans", "SCTransNoBatchRegress"]
+    )
 )
-
-print(expand(
-  sexdiff_excel.path,
-  tissue = ["head", "body"],
-  fcaver = "stringent",
-  cellfilt = "NoSexspecArtef",
-  resol = "L4.0",
-  expr = ["LogNorm", "SCTrans"]
-))
-
-quit()
 
