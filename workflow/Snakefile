@@ -1,22 +1,7 @@
-from snakemake.utils import min_version
+# include all filespace definitions
+from files.sexbias_files import *
 
-##### set minimum snakemake version #####
-#min_version("6.4.1")
-
-
-##### setup report #####
 configfile: "config/config.yaml"
-
-
-#report: "report/workflow.rst"
-
-
-##### setup singularity #####
-
-# this container defines the underlying OS for each job when using the workflow
-# with --use-conda --use-singularity
-#container: "docker://continuumio/miniconda3"
-
 
 ##### load rules #####
 include: "rules/common.smk"
@@ -31,6 +16,7 @@ exclude = ['testis', 'ovary', 'male_reproductive_glands',
            ]
 
 samples = samples.query("tissue not in @exclude")
+#print(samples[["tissue", "resols"]])
 
 
 ##samples = samples.query("tissue in ['leg', 'malpighian_tubule']")
@@ -48,16 +34,21 @@ samples = samples.query("tissue in ['body', 'head']")
 #samples = samples.query("tissue in ['heart']")
 #samples = samples.query("tissue in ['all']")
 
+tasks = samples.explode("resols").explode("cellfilts")
+
 #include: "rules/get_loom.smk"
-include: "rules/prepare_expression_h5ad.smk"
+#include: "rules/prepare_expression_h5ad.smk"
 ##include: "rules/run_scpopcorn.smk"
 ##include: "rules/integrate_scpopcorn_results.smk"
-include: "rules/sexbias.smk"
+#include: "rules/sexbias.smk"
 #include: "rules/mphate.smk"
 ##include: "rules/markers.smk"
 #include: "rules/extract_ribosomal_expr.smk"
+include: "rules/fig1.smk"
 #include: "rules/fig2.smk"
+#include: "rules/dsx_targets.smk"
 #include: "rules/extra.smk"
+include: "rules/copy_to_box.smk"
 
 
 print(get_final_output())

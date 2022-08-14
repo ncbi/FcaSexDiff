@@ -1,15 +1,77 @@
-rule get_tsne_count_bias:
-  input:
-    "scraps/lognorm_h5ad/lognorm_{tissue}_{fcaver}.h5ad",
-    "exports/sexdiff/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.h5ad",
-  output:
-    "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/tsne_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
-  script:
-    "../scripts/draw_tsne_count_bias.R"
-  input:
-  output:
-  script:
-    "../scripts/fig1/get_tsne_count_bias.R"
+
+rule extract_rp_gene_expr:
+    input:
+        expr = normalized_h5ad.path,
+        cellfilt = filtered_cells_csv.path,
+        rpgenes = "resources/rp_genes_flybase_FBgg0000141.txt",
+    output:
+        rp_expr_h5ad.path,
+    script:
+        "../scripts/fig1/extract_rp_gene_expr.py"
+
+rule get_scatter_data:
+    input:
+        sexdiff = sexdiff_h5ad.path,
+        rp_expr = rp_expr_h5ad.path,
+    output:
+        bias_scatter_data.path,
+    script:
+        "../scripts/fig1/prepare_data_scatter.R"
+
+rule get_tsne_data:
+    input:
+        expr = normalized_h5ad.path,
+        scatter = bias_scatter_data.path,
+    output:
+        bias_tsne_data.path,
+    script:
+        "../scripts/fig1/prepare_data_tsne.R"
+
+rule get_bias_tsne:
+    input:
+        scatter = bias_scatter_data.path,
+        tsne = bias_tsne_data.path,
+    output:
+        bias_tsne_pdf.path,
+    script:
+        "../scripts/fig1/get_tsne.R"
+
+
+rule get_bias_scatter:
+    input:
+        scatter = bias_scatter_data.path,
+    output:
+        bias_scatter_pdf.path,
+    script:
+        "../scripts/fig1/get_scatter.R"
+
+
+
+append_final_output(
+    expand(
+        expand(
+            [bias_tsne_pdf.path, bias_scatter_pdf.path],
+            zip,
+            allow_missing = True,
+            tissue = tasks["tissue"],
+            fcaver = tasks["fcaver"],
+            resol = tasks["resols"],
+            cellfilt = tasks["cellfilts"],
+        ),
+        expr = "LogNorm",
+        bias = ["count", "expr", "rp", "nonrp"]
+    )
+)
+
+
+#rule get_tsne_count_bias:
+#  input:
+#    "scraps/lognorm_h5ad/lognorm_{tissue}_{fcaver}.h5ad",
+#    "exports/sexdiff/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/#sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.h5ad",
+#  output:
+#    "exports/extras/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/#tsne_count_bias_{tissue}_{fcaver}_{resol}_{cellfilt}.pdf",
+#  script:
+#    "../scripts/draw_tsne_count_bias.R"
 #
 ## find genes that vary across pseudotime using graph_test function in monocle3
 ## which in turn runs Moran's I test. this step does not filter any gene, keeps

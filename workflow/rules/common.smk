@@ -7,9 +7,9 @@ import pandas as pd
 samples = (
     pd.read_csv(config["samples"], sep="\t", comment = "#",
                 dtype={"tissue": str, "fcaver":str})
-    .assign(resols = lambda df: df.resols.apply(
-        lambda x: ["annotation"] + ([] if pd.isna(x) else x.split(','))
-    ))
+    #.assign(resols = lambda df: df.resols.apply(
+    #    lambda x: ["annotation"] + ([] if pd.isna(x) else x.split(','))
+    #))
     .assign(cellfilts = lambda df: df.cellfilts.apply(
         lambda x: ["NoSexspecArtef"] + ([] if pd.isna(x) else x.split(','))
     ))

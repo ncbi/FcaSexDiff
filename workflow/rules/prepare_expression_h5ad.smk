@@ -1,4 +1,3 @@
-from files.sexbias_files import *
 
 #ruleorder: create_test_h5ad > combine_gonads > loom_to_h5ad
 
@@ -52,7 +51,7 @@ rule normalize_expr:
   input:
     h5ad_from_loom.path,
   output:
-    normalized_h5ad.fix(expr = "LogNorm").path
+    normalized_h5ad.path
   script:
     "../scripts/normalize.py"
 
@@ -64,19 +63,15 @@ rule sctransform_expr:
   script:
     "../scripts/do_sctransform.R"
 
-#
+
 append_final_output(
-#  expand(
-#  "scraps/lognorm_h5ad/lognorm_{tissue}_{fcaver}.h5ad",
-#  zip,
-#  tissue = samples["tissue"],
-#  fcaver = samples["fcaver"],
-#)
-  [
-    h5ad_from_loom.path.format(
-      tissue = "body", fcaver = "stringent",
-    )
-  ]
+  expand(
+    normalized_h5ad.path,
+    zip,
+    tissue = samples["tissue"],
+    fcaver = samples["fcaver"],
+    expr = ["LogNorm"],
+  )
 )
 #
 #tasks = samples.explode("cellfilts")

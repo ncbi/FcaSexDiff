@@ -1,26 +1,33 @@
+
 rule draw_heatmap:
-  input:
-    "exports/sexdiff/cellfilter~NoSexspecArtef/resolution~{resol}"
-    "/{tissue}/sexdiff_{tissue}_stringent_{resol}_NoSexspecArtef.h5ad"
-  output:
-    "scraps/fig2/heatmap_biased_genes_{tissue}_{resol}.pdf",
-  script:
-    "../scripts/fig2/draw_heatmap_biased_genes.R"
+    input:
+        sexdiff_h5ad.path
+    output:
+        heatmap_biased_genes.path
+    script:
+        "../scripts/fig2/draw_heatmap_biased_genes.R"
 
 rule draw_upset:
-  input:
-    "scraps/biased_genes/all_biased_genes_{resol}.tsv",
-  output:
-    "scraps/fig2/upset_biased_genes_{tissue}_{resol}.pdf",
-  script:
-    "../scripts/fig2/draw_upset_biased_genes.R"
+    input:
+        "scraps/biased_genes/all_biased_genes_{resol}.tsv",
+    output:
+        "scraps/fig2/upset_biased_genes_{tissue}_{resol}.pdf",
+    script:
+        "../scripts/fig2/draw_upset_biased_genes.R"
+
 
 append_final_output(
-  [
-    "scraps/fig2/heatmap_biased_genes_body_L4.0.pdf",
-    "scraps/fig2/heatmap_biased_genes_head_L4.0.pdf",
-    "scraps/fig2/upset_biased_genes_body_L4.0.pdf",
-    "scraps/fig2/upset_biased_genes_head_L4.0.pdf",
-  ]
+    expand(
+        expand(
+            [heatmap_biased_genes.path],
+            zip,
+            allow_missing=True,
+            tissue=tasks["tissue"],
+            fcaver=tasks["fcaver"],
+            resol=tasks["resols"],
+            cellfilt=tasks["cellfilts"],
+        ),
+        expr = "LogNorm",
+    )
 )
 

@@ -19,6 +19,11 @@ def find_markers(adata, groupby):
     marker_info = pd.DataFrame()
     top_markers = {}
 
+    # workaround for scanpy bug:
+    # https://bytemeta.vip/repo/scverse/scanpy/issues/2239
+    if "log1p" in adata.uns.keys():
+        adata.uns["log1p"]["base"] = None
+
     try:
         sc.tl.rank_genes_groups(
             adata, groupby, groups = "all", reference = "rest",

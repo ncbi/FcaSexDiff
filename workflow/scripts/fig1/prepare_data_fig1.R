@@ -55,26 +55,38 @@ get_bias <- function(tissue) {
     %>% mutate(pct_genes_female = 100*female_gene/ngene)
     %>% mutate(pct_genes_male = 100*male_gene/ngene)
     %>% mutate(expr_bias_type = ifelse(count_bias_type == "FemaleOnly", "FemaleOnly",
-                                       ifelse(count_bias_type == "MaleOnly", "MaleOnly",
-                                              ifelse(pct_genes_female > 2*pct_genes_male, "FemaleBiased",
-                                                     ifelse(pct_genes_male > 2*pct_genes_female, "MaleBiased", "Unbiased")))))
+                                ifelse(count_bias_type == "MaleOnly", "MaleOnly",
+                                ifelse((male_gene == 0) & (female_gene == 0), "Unbiased",
+                                ifelse(male_gene == 0, "FemaleOnly",
+                                ifelse(female_gene == 0, "MaleOnly",
+                                ifelse(pct_genes_female > 2*pct_genes_male, "FemaleBiased",
+                                ifelse(pct_genes_male > 2*pct_genes_female, "MaleBiased",
+                                       "MixedBiased"))))))))
     %>% mutate(expr_bias_label = ifelse((pct_genes_female > 2*pct_genes_male) | (pct_genes_male > 2*pct_genes_female),
                                        as.character(cluster_label), ''))
     %>% left_join(
       read.csv(glue(rp_expr_fmt))
-      %>% replace_na(list(rp_avg_female=0, rp_avg_male=0))
     )
+    %>% replace_na(list(rp_avg_female=0, rp_avg_male=0))
     %>% mutate(rp_bias_type = ifelse(count_bias_type == "FemaleOnly", "FemaleOnly",
-                                     ifelse(count_bias_type == "MaleOnly", "MaleOnly",
-                                            ifelse(rp_avg_female > 2*rp_avg_male, "FemaleBiased",
-                                                   ifelse(rp_avg_male > 2*rp_avg_female, "MaleBiased", "Unbiased")))))
+                                ifelse(count_bias_type == "MaleOnly", "MaleOnly",
+                                ifelse((rp_avg_male == 0) & (rp_avg_female == 0), "Unbiased",
+                                ifelse(rp_avg_male == 0, "FemaleOnly",
+                                ifelse(rp_avg_female == 0, "MaleOnly",
+                                ifelse(rp_avg_female > 2*rp_avg_male, "FemaleBiased",
+                                ifelse(rp_avg_male > 2*rp_avg_female, "MaleBiased",
+                                       "MixedBiased"))))))))
     %>% mutate(rp_bias_label = ifelse((rp_avg_female > 2*rp_avg_male) | (rp_avg_male > 2*rp_avg_female),
                                       as.character(cluster_label), ''))
     %>% left_join(non_rp)
     %>% mutate(nonrp_bias_type = ifelse(count_bias_type == "FemaleOnly", "FemaleOnly",
-                                       ifelse(count_bias_type == "MaleOnly", "MaleOnly",
-                                              ifelse(pct_nonrp_female > 2*pct_nonrp_male, "FemaleBiased",
-                                                     ifelse(pct_nonrp_male > 2*pct_nonrp_female, "MaleBiased", "Unbiased")))))
+                                ifelse(count_bias_type == "MaleOnly", "MaleOnly",
+                                ifelse((pct_nonrp_male == 0) & (pct_nonrp_female == 0), "Unbiased",
+                                ifelse(pct_nonrp_male == 0, "FemaleOnly",
+                                ifelse(pct_nonrp_female == 0, "MaleOnly",
+                                ifelse(pct_nonrp_female > 2*pct_nonrp_male, "FemaleBiased",
+                                ifelse(pct_nonrp_male > 2*pct_nonrp_female, "MaleBiased",
+                                       "MixedBiased"))))))))
     %>% mutate(nonrp_bias_label = ifelse((pct_nonrp_female > 2*pct_nonrp_male) | (pct_nonrp_male > 2*pct_nonrp_female),
                                        as.character(cluster_label), ''))
   )

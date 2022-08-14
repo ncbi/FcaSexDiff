@@ -71,6 +71,11 @@ def get_sexbiased_expression_in_cluster(adata):
 
     error = False
 
+    # workaround for scanpy bug:
+    # https://bytemeta.vip/repo/scverse/scanpy/issues/2239
+    if "log1p" in adata.uns.keys():
+        adata.uns["log1p"]["base"] = None
+
     # scanpy assumes expression is already in log scale
 
     try:

@@ -28,13 +28,13 @@ print(vars_to_regress)
 transform <- function(ad) {
 
   meta <- ad$obs
-  print(head(meta))
+  #print(head(meta))
 
   counts <- as(t(as.matrix(ad$X)), "sparseMatrix")
   row_names <- rownames(ad$var)
   rownames(counts) <- rownames(ad$var)
   colnames(counts) <- rownames(ad$obs)
-  print(counts[1:5,1:5])
+  #print(counts[1:5,1:5])
 
   so <- CreateSeuratObject(
     counts = counts
@@ -52,12 +52,12 @@ transform <- function(ad) {
     , verbose = TRUE
   )
 
-  print(dim(so))
-  print(dim(so@assays$RNA))
-  dim(so@assays$SCT)
+  #print(dim(so))
+  #print(dim(so@assays$RNA))
+  #print(dim(so@assays$SCT))
 
   sct_counts <- Matrix::t(so@assays$SCT@data)
-  print(sct_counts[1:5, 1:5])
+  #print(sct_counts[1:5, 1:5])
 
   # SCTransform has removed some genes
   # so truncate scanpy object

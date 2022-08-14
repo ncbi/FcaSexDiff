@@ -1,4 +1,3 @@
-from files.sexbias_files import *
 
 rule find_markers:
   input:
@@ -65,56 +64,21 @@ rule compare_normalization_cutoffs:
 #    
 #
 #
-#tasks = samples.explode("resols").explode("cellfilts")
-#
-append_final_output(
-#    expand(
-#      [
-#        "scraps/sexdiff/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/sexdiff_count_{tissue}_{fcaver}_{resol}_{cellfilt}.h5",
-#    "scraps/sexdiff/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/sexdiff_expr_{tissue}_{fcaver}_{resol}_{cellfilt}.h5",
-#        "exports/sexdiff/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.h5ad",
-#        "exports/sexdiff/cellfilter~{cellfilt}/resolution~{resol}/{tissue}/sexdiff_{tissue}_{fcaver}_{resol}_{cellfilt}.xlsx",
-#      ],
-#      zip,
-#      allow_missing=True,
-#      tissue=tasks["tissue"],
-#      fcaver=tasks["fcaver"],
-#      resol=tasks["resols"],
-#      cellfilt=tasks["cellfilts"],
-#    ) +
-     [
-       sexdiff_excel.path.format(
-         tissue = "body", fcaver = "stringent",
-         cellfilt = "NoSexspecArtef",  resol = "L4.0",
-         expr = "LogNorm",
-       ),
-       sexdiff_excel.path.format(
-         tissue = "body", fcaver = "stringent",
-         cellfilt = "NoSexspecArtef",  resol = "L4.0",
-         expr = "SCTrans",
-       ),
-       sexdiff_excel.path.format(
-         tissue = "body", fcaver = "stringent",
-         cellfilt = "NoSexspecArtef",  resol = "L4.0",
-         expr = "SCTransNoBatchRegress",
-       ),
-       sexdiff_excel.path.format(
-         tissue = "head", fcaver = "stringent",
-         cellfilt = "NoSexspecArtef",  resol = "L4.0",
-         expr = "LogNorm",
-       ),
-       sexdiff_excel.path.format(
-         tissue = "head", fcaver = "stringent",
-         cellfilt = "NoSexspecArtef",  resol = "L4.0",
-         expr = "SCTrans",
-       ),
-    ] + expand(
-      compare_params_sexdiff.path,
-      tissue = ["head", "body"],
-      fcaver = "stringent",
-      cellfilt = "NoSexspecArtef",
-      resol = "L4.0",
-      expr = ["LogNorm", "SCTrans", "SCTransNoBatchRegress"]
-    )
-)
+tasks = samples.explode("resols").explode("cellfilts")
+print(tasks)
 
+#append_final_output(
+#    expand(
+#        expand(
+#            [sexdiff_excel.path],
+#            zip,
+#            allow_missing=True,
+#            tissue=tasks["tissue"],
+#            fcaver=tasks["fcaver"],
+#            resol=tasks["resols"],
+#            cellfilt=tasks["cellfilts"],
+#        ),
+#        expr = "LogNorm",
+#    )
+#)
+#
