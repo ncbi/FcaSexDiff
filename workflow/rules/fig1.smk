@@ -50,7 +50,7 @@ rule get_bias_scatter:
 append_final_output(
     expand(
         expand(
-            [bias_tsne_pdf.path, bias_scatter_pdf.path],
+            [bias_tsne_pdf.path, bias_scatter_pdf.path, rp_expr_h5ad.path],
             zip,
             allow_missing = True,
             tissue = tasks["tissue"],
@@ -59,7 +59,7 @@ append_final_output(
             cellfilt = tasks["cellfilts"],
         ),
         expr = "LogNorm",
-        bias = ["count", "expr", "rp", "nonrp"]
+        bias = ["count", "expr", "rpavg", "rp", "nonrp"]
     )
 )
 

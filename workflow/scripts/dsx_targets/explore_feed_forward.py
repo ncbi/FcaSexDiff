@@ -23,6 +23,10 @@ print(G)
 
 dsx_one_hop = set([x for x in nx.all_neighbors(G, "dsx")])
 
+print(len(dsx_one_hop))
+
+quit()
+
 dsx_two_hop = set()
 dsx_intermediate = set()
 dsx_ff = set()
@@ -96,8 +100,17 @@ dsx_one_hop_type_x_df = (
         ascending = [True, False, False])
 )
 
-print(dsx_one_hop_type_x_df)
+dsx_traingle_motif = pd.DataFrame()
 
+for v in dsx_one_hop_type_x.keys():
+    dsx_traingle_motif = pd.concat([
+       dsx_traingle_motif,
+       pd.DataFrame(dict(y = list(dsx_one_hop_type_x[v]))).assign(x = v)
+    ])
+
+print(dsx_traingle_motif)
+
+dsx_traingle_motif.to_csv("dsx_ff_motifs.csv", index=False)
 dsx_one_hop_type_x_df.to_csv("dsx_ff_coregulators.csv", index=False)
 nodes.to_csv("dsx_one_hop_targets_nodes.csv", index=False)
 grn.to_csv("dsx_one_hop_targets_edges.csv", index=False)

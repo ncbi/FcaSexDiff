@@ -61,6 +61,7 @@ x_col <- list(
     count = "pct_cells_male",
     expr = "pct_genes_male",
     rp = "pct_rp_male",
+    rpavg = "rp_avg_male",
     nonrp = "pct_nonrp_male"
 )
 
@@ -68,6 +69,7 @@ x_label <- list(
     count = "% cells male (replicate average)",
     expr = "% genes male biased",
     rp = "% RP genes male biased",
+    rpavg = "Avg RP expression in male cells",
     nonrp = "% non-RP genes male biased"
 )
 
@@ -75,6 +77,7 @@ y_col <- list(
     count = "pct_cells_female",
     expr = "pct_genes_female",
     rp = "pct_rp_female",
+    rpavg = "rp_avg_female",
     nonrp = "pct_nonrp_female"
 )
 
@@ -82,6 +85,7 @@ y_label <- list(
     count = "% cells female (replicate average)",
     expr = "% genes female biased",
     rp = "% RP genes female biased",
+    rpavg = "Avg RP expression in female cells",
     nonrp = "% non-RP genes female biased"
 )
 
@@ -89,6 +93,7 @@ color_col <- list(
     count = "count_color",
     expr = "expr_color",
     rp = "rp_color",
+    rpavg = "rp_color",
     nonrp = "nonrp_color"
 )
 
@@ -96,6 +101,7 @@ label_col <- list(
     count = "count_label",
     expr = "expr_label",
     rp = "rp_label",
+    rpavg = "rp_label",
     nonrp = "nonrp_label"
 )
 
@@ -103,6 +109,7 @@ title <- list(
     count = "Count bias",
     expr = "Expression bias",
     rp = "RP expr bias",
+    rpavg = "Avg RP expr",
     nonrp = "NonRP expr bias"
 )
 
@@ -110,6 +117,7 @@ legend <- list(
     count = "Count bias",
     expr = "Expression bias",
     rp = "RP expr bias",
+    rpavg = "Avg RP expr",
     nonrp = "NonRP expr bias"
 )
 

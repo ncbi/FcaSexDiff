@@ -67,18 +67,18 @@ rule compare_normalization_cutoffs:
 tasks = samples.explode("resols").explode("cellfilts")
 print(tasks)
 
-#append_final_output(
-#    expand(
-#        expand(
-#            [sexdiff_excel.path],
-#            zip,
-#            allow_missing=True,
-#            tissue=tasks["tissue"],
-#            fcaver=tasks["fcaver"],
-#            resol=tasks["resols"],
-#            cellfilt=tasks["cellfilts"],
-#        ),
-#        expr = "LogNorm",
-#    )
-#)
-#
+append_final_output(
+    expand(
+        expand(
+            [sexdiff_excel.path],
+            zip,
+            allow_missing=True,
+            tissue=tasks["tissue"],
+            fcaver=tasks["fcaver"],
+            resol=tasks["resols"],
+            cellfilt=tasks["cellfilts"],
+        ),
+        expr = "LogNorm",
+    )
+)
+

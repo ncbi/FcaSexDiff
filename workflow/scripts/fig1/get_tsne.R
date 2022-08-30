@@ -146,6 +146,7 @@ color_col <- list(
     count = "count_color",
     expr = "expr_color",
     rp = "rp_color",
+    rpavg = "rp_color",
     nonrp = "nonrp_color"
 )
 
@@ -153,6 +154,7 @@ label_col <- list(
     count = "count_label",
     expr = "expr_label",
     rp = "rp_label",
+    rpavg = "rp_label",
     nonrp = "nonrp_label"
 )
 
@@ -160,6 +162,7 @@ title <- list(
     count = "Count bias",
     expr = "Expression bias",
     rp = "RP expr bias",
+    rpavg = "Avg RP expr",
     nonrp = "NonRP expr bias"
 )
 
@@ -167,6 +170,7 @@ legend <- list(
     count = "Count bias",
     expr = "Expression bias",
     rp = "RP expr bias",
+    rpavg = "Avg RP expr",
     nonrp = "NonRP expr bias"
 )
 

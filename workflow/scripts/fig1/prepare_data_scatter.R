@@ -9,11 +9,16 @@ rp_expr_file <- snakemake@input[["rp_expr"]]
 scatter_data_file <- snakemake@output[[1]]
 tissue <- snakemake@wildcards[["tissue"]]
 resol <- snakemake@wildcards[["resol"]]
+norm_method <- snakemake@wildcards[["expr"]]
 
 print(rp_expr_file)
 print(sexdiff_file)
 print(tissue)
 print(scatter_data_file)
+
+if (norm_method != "LogNorm") {
+    stop(paste("Don't know how to get average RP expression for normalization ", norm_method))
+}
 
 rpexpr <- read_h5ad(rp_expr_file)
 rp_genes <- rpexpr$var_names
@@ -21,7 +26,7 @@ head(rp_genes)
 
 rp_avg <- (
     get_obs_anndata(rpexpr)
-    %>% mutate(rp_avg = Matrix::rowMeans(rpexpr$X))
+    %>% mutate(rp_avg = log1p(Matrix::rowMeans(expm1(rpexpr$X))))
     %>% rename(cluster := !!resol)
     %>% select(sex, cluster, rp_avg)
     %>% group_by(cluster, sex)
