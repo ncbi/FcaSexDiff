@@ -104,12 +104,10 @@ expressed = (
     .merge(dsx_high_coreg, how="left")
     .fillna(0)
 )
-bias = expressed.query("bias_group != 'Unbiased'")
-bias_copy = bias.assign(bias_group = "AllBiased")
-expressed_copy = expressed.assign(bias_group = "AllExpressed")
-bias = pd.concat([bias, bias_copy, expressed, expressed_copy])
-
-print(bias)
+bias_groups = expressed.query("bias_group != 'Unbiased'")
+all_biased = bias_groups.assign(bias_group = "AllBiased")
+expressed = expressed.assign(bias_group = "AllExpressed")
+bias = pd.concat([bias_groups, all_biased, expressed])
 
 enrich_frac = bias.groupby("bias_group").mean()
 enrich_total = bias.groupby("bias_group").sum().astype(int)

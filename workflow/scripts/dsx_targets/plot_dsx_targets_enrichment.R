@@ -99,9 +99,9 @@ p1 <- (
     + geom_bar(stat = "identity", position = "dodge")
     + geom_text(aes(label = sig), vjust = 1, size = 5)
     + facet_grid(tissue ~ enrichment_type)
-    #+ ggh4x::facet_grid2(
-    #    tissue ~ enrichment_type, scales = "free_y", independent = "y"
-    #)
+    + ggh4x::facet_grid2(
+        tissue ~ enrichment_type, scales = "free_y", independent = "y"
+    )
     + scale_fill_manual(values = group_colors)
     + labs(
       x = "Biased gene group",
@@ -138,16 +138,19 @@ biased <- (
     %>% mutate(enrichment_value = enrichment_value / enrichment_value.exp)
 )
 
-p3 <- (
-    rbind(femaleonly, maleonly, mixed) #, biased)
-    %>% mutate(enrichment_value = ifelse(
-        enrichment_value > 10, 10,  enrichment_value
-    ))
+p2 <- (
+    rbind(femaleonly, maleonly, mixed, biased)
+#    %>% mutate(enrichment_value = ifelse(
+#        enrichment_value > 10, 10,  enrichment_value
+#    ))
     %>% filter(enrichment_type != "trusted_tf")
     %>% ggplot(aes(x = GeneGroup, y = enrichment_value, fill = GeneGroup))
     + geom_bar(stat = "identity", position = "dodge")
     + geom_text(aes(label = sig), vjust = 1, size = 5)
     + facet_grid(tissue ~ enrichment_type)
+    + ggh4x::facet_grid2(
+        tissue ~ enrichment_type, scales = "free_y", independent = "y"
+    )
     + scale_fill_manual(values = group_colors)
     + labs(
       x = "Biased gene group",
@@ -157,7 +160,7 @@ p3 <- (
     + theme(legend.position = "top")
 )
 
-p2 <- (
+p3 <- (
     df %>% filter(enrichment_type == "trusted_tf")
     %>% ggplot(aes(x = GeneGroup, y = enrichment_value, fill = GeneGroup))
     + geom_bar(stat = "identity", position = "dodge")
@@ -171,9 +174,9 @@ p2 <- (
     + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 )
 
-pdf("dsx_targets_tfs_enrichments.pdf", height=12, width=18)
+pdf(pdf_file, height=12, width=18)
 (
-    p1 + p3 + p2 + plot_layout(nrow = 1, widths = c(4,4,1), guides = "collect")
+    p1 + p2 + p3 + plot_layout(nrow = 1, widths = c(4,4,1), guides = "collect")
     & theme(legend.position = "top")
 )
 dev.off()
