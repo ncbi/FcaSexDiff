@@ -44,6 +44,14 @@ rule copy_dsx_ffl_status:
     shell:
         "rclone copyto {input} {BOX_ROOT}/{output}"
 
+rule copy_dsx_ffl_detailed_status:
+    input:
+        lambda wc: expanded_path(wc, dsx_ffl_detailed_status.path)
+    output:
+        touch("FollowupPaper/Data/DsxFFL/{tissue}_dsx_ffl_motif_detailed_status.tsv")
+    shell:
+        "rclone copyto {input} {BOX_ROOT}/{output}"
+
 rule copy_biased_gene_groups:
     input:
         lambda wc: expanded_path(wc, biased_gene_groups.path)
@@ -85,6 +93,7 @@ append_final_output(
             "FollowupPaper/Data/SexDiffH5ad/{tissue}_sexdiff.h5ad",
             "FollowupPaper/Data/DsxTargetsTFsEnrichments/{tissue}_dsx_targets_tfs_enrichment.tsv",
             "FollowupPaper/Data/DsxFFL/{tissue}_dsx_ffl_motif_status.tsv",
+            "FollowupPaper/Data/DsxFFL/{tissue}_dsx_ffl_motif_detailed_status.tsv",
             "FollowupPaper/Data/BiasedGeneGroups/{tissue}_biased_gene_groups.tsv",
         ],
          tissue = tasks["tissue"],

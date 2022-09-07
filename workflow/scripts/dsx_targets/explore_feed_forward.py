@@ -25,7 +25,6 @@ dsx_one_hop = set([x for x in nx.all_neighbors(G, "dsx")])
 
 print(len(dsx_one_hop))
 
-quit()
 
 dsx_two_hop = set()
 dsx_intermediate = set()

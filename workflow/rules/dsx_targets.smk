@@ -75,38 +75,90 @@ rule plot_dsx_targets_tfs_enrichments:
     script:
         "../scripts/dsx_targets/plot_dsx_targets_enrichment.R"
 
+rule get_regulon_info:
+    input:
+        loom = "imports/loom/{tissue}_{fcaver}.loom",
+    output:
+        targets = regulon_targets.path,
+        auc = regulon_auc.path,
+    script:
+        "../scripts/dsx_targets/get_regulon_info.R"
+
+rule get_cluster_regulon_activity:
+    input:
+        auc = regulon_auc.path,
+        cells = filtered_cells_csv.path,
+        adata = h5ad_from_loom.path
+    output:
+        cluster_regulon_activity.path
+    script:
+        "../scripts/dsx_targets/get_cluster_regulon_activity.R"
+
+
 rule check_dsx_ffl_status:
     input:
         expr = normalized_h5ad.path,
         bias = sexdiff_h5ad.path,
+        biased_groups = biased_gene_groups.path,
+        ff_motif = "exports/dsx_targets/dsx_ff_motifs.tsv",
+        regulon_targets = regulon_targets.path,
+        regulon_activity = cluster_regulon_activity.path,
     output:
-        dsx_ffl_status.path,
+        summary = dsx_ffl_status.path,
+        detailed = dsx_ffl_detailed_status.path,
     script:
         "../scripts/dsx_targets/check_ffl_status_in_tissue.py"
 
-tasks = samples.explode("resols").explode("cellfilts")
 
 append_final_output([
     "resources/GRN.tsv",
     "exports/dsx_targets/dsx_ff_motifs.tsv",
-    "exports/dsx_targets/dsx_targets_tfs_enrichments.pdf"
+    "exports/dsx_targets/dsx_targets_tfs_enrichments.pdf",
 ])
 
 append_final_output(
     expand(
-    expand(
-      [
-        dsx_targets_tfs_enrich.path,
-        #        dsx_ffl_status.path,
-      ],
-      zip,
-      allow_missing=True,
-      tissue=tasks["tissue"],
-      fcaver=tasks["fcaver"],
-      resol=tasks["resols"],
-      cellfilt=tasks["cellfilts"],
-    ),
-      expr = "LogNorm",
+        expand(
+          [
+            dsx_targets_tfs_enrich.path,
+            dsx_ffl_status.path,
+          ],
+          zip,
+          allow_missing=True,
+          tissue=tasks["tissue"],
+          fcaver=tasks["fcaver"],
+          resol=tasks["resols"],
+          cellfilt=tasks["cellfilts"],
+        ),
+        expr = "LogNorm",
     )
 )
+
+append_final_output(
+    expand(
+          [
+            regulon_auc.path,
+          ],
+          zip,
+          allow_missing=True,
+          tissue=tasks["tissue"],
+          fcaver=tasks["fcaver"],
+    )
+)
+
+
+append_final_output(
+    expand(
+          [
+            cluster_regulon_activity.path,
+          ],
+          zip,
+          allow_missing=True,
+          tissue=tasks["tissue"],
+          fcaver=tasks["fcaver"],
+          resol=tasks["resols"],
+          cellfilt=tasks["cellfilts"],
+    )
+)
+
 

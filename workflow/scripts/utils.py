@@ -111,3 +111,24 @@ def ensure_dir(file_path):
         print("Creating new directory", directory)
         os.makedirs(directory)
     return file_path
+
+
+def paste(*args, sep = '', collapse = None):
+    """
+    Port of paste from R
+    Args:
+        *args: lists to be combined
+        sep: a string to separate the terms
+        collapse: an optional string to separate the results
+    Returns:
+        A list of combined results or a string of combined results
+        if collapse is not None
+    """
+    combs = list(zip(*args))
+    out = [sep.join(str(j) for j in i) for i in combs]
+    if collapse is not None:
+        out = collapse.join(out)
+    return out
+
+
+print(paste(['a','b'], ['x', 'y'], ['p', 'q']))
