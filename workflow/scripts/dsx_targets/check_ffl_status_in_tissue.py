@@ -114,6 +114,8 @@ df = (
     .assign(y = lambda tdf: tdf["ys"].str.split(","))
     [["x", "y"]]
     .explode("y")
+    # make unique indices
+    .reset_index(drop = True)
 )
 
 print(df)
@@ -139,7 +141,9 @@ expr = expr[:, expr.X.todense().sum(axis = 0) > 0]
 expr = (
     expr.to_df()
     .assign(cluster = expr.obs[resol])
-    .groupby("cluster").median()
+    .groupby("cluster")
+    # keep fraction of cells having atleast one umi
+    .agg(lambda x: (x > 0).mean())
 )
 
 print(expr)
@@ -150,15 +154,47 @@ bias = bias.to_df().T
 
 print(bias)
 
-res = pd.DataFrame([
-    ['M' if bias.loc[cls,gene] < 0 else 'F' if bias.loc[cls,gene] > 0 else 'E' if
-        expr.loc[cls,gene] > 0 else 'N' for gene in bias.columns.tolist()]
-    for cls in bias.index.tolist()],
+res = pd.DataFrame(
+    [
+        ['M' if bias.loc[cls,gene] < 0 else
+         'F' if bias.loc[cls,gene] > 0 else
+         # atleast 10 percent of cells having atleast one umi
+         'E' if expr.loc[cls,gene] > 0.1 else
+         'N' for gene in bias.columns.tolist()]
+        for cls in bias.index.tolist()
+    ],
     index = bias.index,
-    columns = bias.columns)
+    columns = bias.columns
+)
 print(res)
 
-print(df)
+def get_ff_cluster_status(row):
+    dsx_expressed = (res['dsx'] != 'N')
+    x_active = (res[row['x']] != 'N')
+    if row["x"] in binarized_avg_activity.columns:
+        x_active = x_active | binarized_avg_activity[row["x"]]
+    if row["x"] in avg_binarized_activity.columns:
+        # atleast 10 percent of cells having auc above threshold
+        x_active = x_active | (avg_binarized_activity[row["x"]] > 0.1)
+    # Convert boolen to 0/1 vector
+    ff_active = (dsx_expressed & x_active).astype(int)
+    #print(dsx_expressed)
+    #print(x_active)
+    #print(ff_active)
+    n_y_female_biased = (ff_active * (res[row["y"]] == "F")).sum()
+    n_y_male_biased = (ff_active * (res[row["y"]] == "M")).sum()
+    n_y_biased = n_y_female_biased + n_y_male_biased
+    #print(n_y_female_biased, n_y_male_biased, n_y_biased)
+    return pd.Series(
+        [n_y_biased, n_y_female_biased, n_y_male_biased],
+        index = ["n_y_biased", "n_y_female_biased", "n_y_male_biased"]
+    )
+
+
+ff_cluster_st = (
+    df.apply(get_ff_cluster_status, axis = 1)
+)
+print(ff_cluster_st)
 
 def myfunc_dsx(row):
     #ret = paste(res['dsx'], res[row["x"]], res[row["y"]])
@@ -227,12 +263,9 @@ print(tmp)
 #tmp = tmp.sort_index(['dsx', 'x', 'y', 'baa', 'aba'], level='ffelement', axis =
 #        1)
 #print(tmp)
-#if 1: quit()
 
 tmp.columns = ["_".join(x)[1:] for x in tmp.columns]
 
-#if 1: quit()
-#
 #not_interesting = (
 #    (tmp == "FNN") | (tmp == "MNN") | (tmp == "ENN") | (tmp == "NNN") |
 #    (tmp == "FEN") | (tmp == "MEN") | (tmp == "EEN") | (tmp == "NEN") |
@@ -247,8 +280,8 @@ tmp.columns = ["_".join(x)[1:] for x in tmp.columns]
 #print(df)
 
 df = (
-    pd.concat([df, tmp], axis = 1)
-    .sort_values(["x", "y_in_x_regulon"], ascending = [True, False])
+    pd.concat([df, ff_cluster_st, tmp], axis = 1)
+    .sort_values(["n_y_biased", "x", "y_in_x_regulon"], ascending = [False, True, False])
 )
 print(df)
 
