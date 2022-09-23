@@ -252,7 +252,7 @@ print(tmp_aba)
 
 tmp = pd.concat(
     [tmp_dsx, tmp_x, tmp_y, tmp_baa, tmp_aba],
-    keys = ["1dsx", "2x", "3y", "4baa", "5aba"],
+    keys = ["ffl_dsx", "ffl_x", "ffl_y", "scenic_baa", "scenic_aba"],
     names = ["ffelement", "cluster"],
     axis = 1
 )
@@ -262,9 +262,14 @@ tmp = tmp.sort_index(level="cluster", axis = 1)
 print(tmp)
 #tmp = tmp.sort_index(['dsx', 'x', 'y', 'baa', 'aba'], level='ffelement', axis =
 #        1)
-#print(tmp)
+print(tmp)
 
-tmp.columns = ["_".join(x)[1:] for x in tmp.columns]
+tmp.index = pd.MultiIndex.from_frame(
+    pd.concat([df, ff_cluster_st], axis = 1)
+)
+#tmp.columns = ["_".join(x)[1:] for x in tmp.columns]
+
+print(tmp)
 
 #not_interesting = (
 #    (tmp == "FNN") | (tmp == "MNN") | (tmp == "ENN") | (tmp == "NNN") |
@@ -280,9 +285,9 @@ tmp.columns = ["_".join(x)[1:] for x in tmp.columns]
 #print(df)
 
 df = (
-    pd.concat([df, ff_cluster_st, tmp], axis = 1)
-    .sort_values(["n_y_biased", "x", "y_in_x_regulon"], ascending = [False, True, False])
+    tmp
+    .sort_index(axis = 0, level=["n_y_biased", "x", "y_in_x_regulon"], ascending = [False, True, False])
 )
 print(df)
 
-df.to_csv(out_detailed_file, index = False, sep = "\t")
+df.to_hdf(out_detailed_file, key = "ffl_details")

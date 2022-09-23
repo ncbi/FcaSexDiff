@@ -109,6 +109,15 @@ rule check_dsx_ffl_status:
     script:
         "../scripts/dsx_targets/check_ffl_status_in_tissue.py"
 
+rule export_dsx_ffl_status:
+    input:
+        ffl = dsx_ffl_detailed_status.path,
+        bias = sexdiff_h5ad.path,
+    output:
+        dsx_ffl_detailed_status_excel.path,
+    script:
+        "../scripts/dsx_targets/export_ffl_status_to_excel.py"
+
 
 append_final_output([
     "resources/GRN.tsv",
@@ -121,7 +130,7 @@ append_final_output(
         expand(
           [
             dsx_targets_tfs_enrich.path,
-            dsx_ffl_status.path,
+            dsx_ffl_detailed_status_excel.path,
           ],
           zip,
           allow_missing=True,
